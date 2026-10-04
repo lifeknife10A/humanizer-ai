@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 4 Splicer (v7.1.0)
+Unit Test Suite for the Phase 4 Splicer (v7.2.0)
 """
 
 import os
@@ -46,6 +46,16 @@ class TestApplyRuns(unittest.TestCase):
         text = runs_file(DRAFT, ["Our method reaches"])
         new, _, _ = splice(DRAFT, parse_runs(fill(text, ["We reached 87% robustness.\nThat beat the baseline."])))
         self.assertIn("We reached 87% robustness. That beat the baseline. Baseline filtering", new)
+
+    def test_review_flags_copied_sentences_and_sorts_warnings(self):
+        from apply_runs import review_runs
+        from check_draft import check
+        text = runs_file(DRAFT, ["Syntactic attacks manipulate", "Semantic attacks exploit"])
+        runs = parse_runs(fill(text, ["Syntactic attacks manipulate structure. Furthermore, we sorted them; it helped."]))
+        new, _, _ = splice(DRAFT, runs)
+        inside, outside, general, copied = review_runs(runs, check(DRAFT, new))
+        self.assertEqual(copied, [(1, 'Syntactic attacks manipulate structure.')])
+        self.assertTrue({'stock-phrase', 'semicolon'} <= {f['kind'] for f in inside})
 
     def test_edited_original_is_rejected(self):
         runs = [(1, "This sentence is not in the draft.", "Replacement.")]

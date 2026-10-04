@@ -2,7 +2,7 @@
 name: academic-humanizer
 description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
 metadata:
-  version: "7.1.0"
+  version: "7.2.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.1.0)
+# Academic Humanizer (v7.2.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -108,11 +108,18 @@ Offer this phase at delivery. Run it when the user comes back with a scan. **Nev
    - **Prefer plain verbs and concrete phrasing to abstract nouns:** "Multi-turn exploitation plays a longer game. Its adversarial effects pile up across the conversation history."
    - **Leading with the point also works:** "Getting past safety mechanisms is the aim of jailbreaks." It scored the same as the authors' voice in round 3.
    - **Read the CONTEXT lines** so the rewrite still connects to the sentences around it.
+   - **Add nothing,** not even a harmless-looking modifier ("tested with care", "improves robustness markedly"). Every word of a rewrite must trace to the run's ORIGINAL or the source.
 4. **Splice and check.**
    ```bash
    python3 SKILL_DIR/scripts/apply_runs.py draft.txt runs.txt -o draft_next.txt --source source.txt --facts facts.md
    ```
-   Drop `--facts facts.md` when there's no fact sheet. It replaces only the runs, copies everything else unchanged, and checks the result against the original source, never the previous draft. Fix any failure in `runs.txt` and run it again. If it says a run's ORIGINAL wasn't found, the runs file was edited outside a REWRITE slot; regenerate it in step 2.
+   Drop `--facts facts.md` when there's no fact sheet. It replaces only the runs, copies everything else unchanged, and checks the result against the original source, never the previous draft. Its PHASE 4 REVIEW sorts the findings for you:
+   - **Highlighted sentences copied unchanged into a rewrite:** rewrite them. A sentence the detector flagged will be flagged again.
+   - **Warnings inside your rewrites:** fix every one in `runs.txt`. These are problems you introduced.
+   - **Whole-document findings:** fix any failure, and check each hedge or drop warning.
+   - **Warnings in sentences outside the runs:** ignore them. Those sentences already passed the detector.
+
+   Run it again until it says READY TO SCAN, for at most three tries. If it says a run's ORIGINAL wasn't found, the runs file was edited outside a REWRITE slot; regenerate it in step 2.
 5. **Optional second variant.** If the user is willing to scan twice, copy `runs.txt` to `runs_b.txt`, fill it with a different rewrite of the same runs, and splice it to `draft_next_b.txt`. Continue with whichever scans lower.
 6. **Deliver** `draft_next.txt` (and the variant, if any), the checker report, and the estimated score. Ask for the next scan.
 7. **Stop** when the score is under 10%, after three feedback rounds, or when a round doesn't lower the score. Report the score history, round by round.

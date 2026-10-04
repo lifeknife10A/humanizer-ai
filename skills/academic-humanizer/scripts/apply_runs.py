@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 4 Splicer (v7.1.0)
+Academic Humanizer: Phase 4 Splicer (v7.2.0)
 
 Splices rewritten runs back into a draft. Only the text of each run's
 ORIGINAL block is replaced. Every other character of the draft is copied
@@ -19,7 +19,7 @@ import argparse
 import re
 import sys
 
-from check_draft import check, format_report
+from check_draft import check, format_report, segment
 
 RUN_HEADER = re.compile(r'^=== RUN (\d+) ===\s*$', re.MULTILINE)
 
@@ -91,8 +91,54 @@ def splice(draft, runs):
     return ''.join(out), [n for _, n, _ in spans], []
 
 
+def _norm(text):
+    return ' '.join(text.split())
+
+
+def review_runs(runs, result):
+    """Sorts checker findings into those inside rewritten runs (fix) and those outside (leave),
+    and flags highlighted sentences that a rewrite copied unchanged."""
+    rewrites = [_norm(r) for _, _, r in runs if r]
+    inside, outside, general = [], [], []
+    for f in result['findings']:
+        if not f['where'] or f['where'].startswith('source'):
+            general.append(f)
+        elif any(_norm(f['text']) in r for r in rewrites):
+            inside.append(f)
+        else:
+            outside.append(f)
+    copied = []
+    for number, original, rewrite in runs:
+        if not rewrite:
+            continue
+        for s in segment(original):
+            if len(s.text.split()) >= 4 and _norm(s.text) in _norm(rewrite):
+                copied.append((number, s.text))
+    return inside, outside, general, copied
+
+
+def format_review(inside, outside, general, copied):
+    lines = ['=== PHASE 4 REVIEW ===']
+    if copied:
+        lines.append('Highlighted sentences copied unchanged into a rewrite (rewrite them; they will be flagged again):')
+        lines.extend(f'  Run {n}: "{s}"' for n, s in copied)
+    lines.append(f'Warnings inside your rewrites (fix these): {len(inside)}')
+    for f in inside:
+        lines.append(f'  {f["level"]}  {f["kind"]}: {f["message"]}')
+        lines.append(f'        "{f["text"][:110]}"')
+    lines.append(f'Whole-document findings (fix failures; check hedge and drop warnings): {len(general)}')
+    for f in general:
+        where = f'  [{f["where"]}]' if f['where'] else ''
+        lines.append(f'  {f["level"]}  {f["kind"]}: {f["message"]}{where}')
+    lines.append(f'Warnings in sentences outside the runs: {len(outside)}. Those sentences already passed the '
+                 'detector; leave them unchanged.')
+    ok = not copied and not inside and not any(f['level'] == 'FAIL' for f in general)
+    lines.append('PHASE 4 RESULT: ' + ('READY TO SCAN' if ok else 'REVISE runs.txt AND RUN AGAIN'))
+    return '\n'.join(lines)
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.1.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.2.0)')
     parser.add_argument('draft', help='The draft that was scanned')
     parser.add_argument('runs', help='Runs file with REWRITE slots filled in')
     parser.add_argument('-o', '--output', required=True, help='Where to write the new draft')
@@ -129,6 +175,8 @@ def main(argv=None):
     result = check(source, new_draft, facts)
     print()
     print(format_report(result))
+    print()
+    print(format_review(*review_runs(runs, result)))
     return 0 if result['passed'] else 1
 
 
