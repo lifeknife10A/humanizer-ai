@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.8.0)
+Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.9.0)
 
 Groups the sentences a detector highlighted (e.g. ZeroGPT's yellow spans)
 into runs, so they can be rewritten as units. Detectors such as ZeroGPT
@@ -77,9 +77,15 @@ RUNS_FILE_HEADER = """# Phase 4 runs file.
 """
 
 
+def rewritable_units(draft):
+    """Every unit Phase 4 may rewrite: prose sentences, formula lines and section headings.
+    Only the paper's title (a heading in the first paragraph) is left out."""
+    return [s for s in segment(draft) if not (s.heading and s.para == 1)]
+
+
 def runs_file(draft, flagged_lines, gap=1):
     """Builds the fill-in runs file for apply_runs.py."""
-    sentences = [s for s in segment(draft) if not s.heading]
+    sentences = rewritable_units(draft)
     flags, _ = match_flags(sentences, flagged_lines)
     blocks = [RUNS_FILE_HEADER]
     for n, run in enumerate(find_runs(sentences, flags, gap), 1):
@@ -98,7 +104,7 @@ def runs_file(draft, flagged_lines, gap=1):
 
 
 def report(draft, flagged_lines, gap=1):
-    sentences = [s for s in segment(draft) if not s.heading]
+    sentences = rewritable_units(draft)
     flags, unmatched = match_flags(sentences, flagged_lines)
     runs = find_runs(sentences, flags, gap)
     words = [len(s.text.split()) for s in sentences]
@@ -130,7 +136,7 @@ def report(draft, flagged_lines, gap=1):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.8.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.9.0)')
     parser.add_argument('draft', help='The draft that was scanned')
     parser.add_argument('flagged', help='File with one highlighted sentence (or its opening words) per line')
     parser.add_argument('--gap', type=int, default=1, help='Unflagged sentences to bridge inside a run (default 1)')

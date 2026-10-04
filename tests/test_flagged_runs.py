@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 4 Detector-Feedback Helper (v7.8.0)
+Unit Test Suite for the Phase 4 Detector-Feedback Helper (v7.9.0)
 """
 
 import os
@@ -39,6 +39,14 @@ class TestFlaggedRuns(unittest.TestCase):
     def test_runs_do_not_cross_paragraphs(self):
         flags, _ = match_flags(self.sentences, ["Models were particularly", "Our method reaches"])
         self.assertEqual(find_runs(self.sentences, flags), [[5], [6]])
+
+    def test_headings_and_formulas_are_rewritable_but_title_is_not(self):
+        from flagged_runs import rewritable_units
+        text = "Title: A Paper\n\n2. Forecasting Methods\n\nModels learn patterns.\nP = 0.5 * A * v^3\nThat is all."
+        units = [u.text for u in rewritable_units(text)]
+        self.assertNotIn('Title: A Paper', units)
+        self.assertIn('2. Forecasting Methods', units)
+        self.assertIn('P = 0.5 * A * v^3', units)
 
     def test_report_estimates_share(self):
         text = report(DRAFT, ["Our method reaches", "Baseline filtering reaches"])
