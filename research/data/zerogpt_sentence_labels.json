@@ -114,5 +114,43 @@
    "Researchers need breakthroughs",
    "They may also require novel"
   ]
+ },
+ "round2_A": {
+  "file": "llm_round2_variant_A.txt",
+  "zerogpt_score": 19.5,
+  "yellow_prefixes": [
+   "Large language models (LLMs) have demonstrated remarkable",
+   "Deploying them widely in safety-critical domains is another",
+   "We demonstrate this across different",
+   "This persistence suggests fundamental",
+   "We begin with attack methodologies",
+   "Against a language model, adversarial attacks work",
+   "There, adversarial examples are generated",
+   "What language-model attacks exploit instead",
+   "We introduce a novel framework that sorts",
+   "Syntactic attacks manipulate linguistic structure while leaving",
+   "Safety mechanisms, the third factor",
+   "Finally, model capability and interpretability pull",
+   "Adversarial training, the first, exposes",
+   "Input preprocessing and sanitization come second"
+  ]
+ },
+ "round2_B": {
+  "file": "llm_round2_variant_B.txt",
+  "zerogpt_score": 13.9,
+  "yellow_prefixes": [
+   "Large language models (LLMs) do remarkably well",
+   "Across diverse applications they set",
+   "Yet deploying them widely in safety-critical",
+   "Such inputs are designed to elicit",
+   "We investigated the adversarial robustness of contemporary",
+   "We wanted to find systematic",
+   "Against language models, adversarial attacks work",
+   "There, adversarial examples are generated",
+   "Jailbreaks use creative prompt engineering",
+   "With multi-turn exploitation, adversarial effects",
+   "First is adversarial training, where",
+   "Second, input preprocessing and sanitization try"
+  ]
  }
 }

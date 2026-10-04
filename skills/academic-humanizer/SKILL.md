@@ -95,9 +95,10 @@ Steps 1–7 are one pass, and on our tests a single pass lands around 27–35% o
 3. **Rewrite each run as a unit.** Highlights come in runs because the detector scores windows, so rewriting one sentence of a run rarely clears it.
    - Change only run sentences. Every unhighlighted sentence passed, so leave it word for word.
    - Restructure the run instead of polishing it. Reorder its claims, change grammatical subjects, merge or split sentences across the run, and connect sentences to each other ("whereas", "because", relative clauses) rather than writing standalone declaratives.
-   - Prefer the authors' actions to abstract nouns ("We sorted the attacks into four groups" over "The framework categorizes attacks").
+   - Prefer the authors' actions to abstract nouns ("We sorted the attacks into four groups" over "The framework categorizes attacks"), and keep the 16-word cap. On our test abstract, one round in this style took ZeroGPT from 27.2% to 13.9%, while longer connected sentences only reached 19.5%.
+   - Expect neighbours to shift. A sentence you kept can become highlighted after its run changes, because the detector scores windows. Include it in the next round's runs.
    - All hard constraints still apply. Restructuring is not permission to add claims.
-4. **Make two variants when the user is willing to scan twice.** Variant A uses longer, connected sentences, allowing up to about 30 words. Variant B uses the authors' voice within the 16-word cap. The variant that scans lower shows which direction works for this text; continue with it.
+4. **Make two variants when the user is willing to scan twice.** Both follow step 3 but differ in one choice, for example the authors' voice against predicate-fronted sentences ("Getting past safety mechanisms is the aim of jailbreaks"). Continue with whichever scans lower.
 5. **Check every variant** with `check_draft.py` against the original source (not the previous draft), then deliver it for the next scan.
 6. **Stop** when the score is under 10%, after three feedback rounds, or when a round doesn't lower the score. Report the score history.
 
