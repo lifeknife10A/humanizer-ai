@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.10.0)
+# Academic Humanizer (v7.11.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -133,9 +133,9 @@ Offer this phase at delivery. Run it when the user comes back with a scan. **Nev
    - **Whole-document findings:** fix any failure, and check each hedge or drop warning.
    - **Warnings in sentences outside the runs:** ignore them. Those sentences already passed the detector.
 
-   Once every slot is filled, run it again until it says READY TO SCAN, for at most three more tries. If it says a run's ORIGINAL wasn't found, the runs file was edited outside a REWRITE slot; regenerate it in step 2.
+   Once every slot is filled, run it again until it says READY TO SCAN. `draft_next.txt` is written only then. Until then the spliced text goes to `draft_next.not_ready.txt`, which is for reading, never for scanning. A highlighted sentence copied unchanged into a rewrite always blocks the result: on the smart-grid paper, all 13 copied highlighted sentences were highlighted again. After five tries that still end in REVISE, stop and tell the user. Name the runs and warnings that remain, and don't hand over the not-ready text as ready. If it says a run's ORIGINAL wasn't found, the runs file was edited outside a REWRITE slot; regenerate it in step 2.
 5. **Optional second variant.** If the user is willing to scan twice, copy `runs.txt` to `runs_b.txt`, fill it with a different rewrite of the same runs, and splice it to `draft_next_b.txt`. Continue with whichever scans lower.
-6. **Deliver** `draft_next.txt` (and the variant, if any), the checker report, and the estimated score. Ask for the next scan.
+6. **Deliver** `draft_next.txt` (and the variant, if any), the checker report, and the estimated score. Quote the last line `apply_runs.py` printed, word for word (`PHASE 4 RESULT: ...`). Never summarize or reword it. Ask for the next scan.
 7. **Stop** when the score is under 10%, after four feedback rounds, or when a round with every run rewritten doesn't lower the score. A round that left runs unrewritten doesn't count; finish those runs and rescan. Report the score history, round by round. Each round has roughly halved the score in our tests, so a text starting near 30% needs two rounds and one starting near 65% needs about four.
 
 ## Hard constraints

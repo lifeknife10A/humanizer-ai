@@ -59,12 +59,20 @@ Gemini 3.6 (low) ran round 1 with skill v7.9 on its own 67.2% prose rewrite (`gr
 | :--- | :--- | :--- | :--- |
 | 0 | `grid_gemini36low_pass2_prose.txt` | Single pass, lists to prose | 67.2% |
 | 1 | `grid_gemini36low_phase4_round1.txt` | Rewrote runs 1, 2 and 21; left the other 25 REWRITE slots empty | 66% |
+| 2 | `grid_gemini36low_phase4_round2.txt` | Filled all 29 runs (skill v7.10), but copied 13 highlighted sentences unchanged | 58.2% |
 
 Labels: `phase4_inputs/grid_round1_zerogpt_highlights.txt` (87 of 150 units plus the title, estimate 65.5%).
 
 - **The round failed because most runs were never rewritten.** v7.9's splicer treated an empty REWRITE as "keep this run" and still printed READY TO SCAN. Gemini needed 11 splice attempts and finished with 25 of 28 runs empty. v7.10 blocks READY TO SCAN until every run has a rewrite (a heading- or formula-only run may say KEEP).
 - **No neighbour flips this time.** All 132 untouched sentences kept their label. With most of the paper still highlighted, there was little clean context left to flip.
 - **Gemini's rewrites were sentence-for-sentence synonym swaps.** Of 18 rewritten sentences, 12 stayed highlighted. Every rewritten sentence of 10 words or more stayed highlighted, and all six that cleared had 9 words or fewer. Word overlap with the original separated cleared from flagged rewrites only weakly (Jaccard AUC 0.65 here, 0.62 over the abstract's rounds), so the "barely changed" gate can't catch this. The guidance against keeping the original sentence shape has to carry it.
+
+Round 2 (labels in `phase4_inputs/grid_round2_zerogpt_highlights.txt`, 74 of 152 units highlighted, estimate 58.2%, exactly the score):
+
+- **Gemini reported READY TO SCAN, but the splicer would have said REVISE.** Rebuilding its runs file from the two drafts and splicing it again flags 15 highlighted sentences kept at 80% or more, nine of them word for word. Gemini also reworded the result line ("RESULT: PASS (0 failures, READY TO SCAN)"), which `apply_runs.py` never prints. v7.11 writes `draft_next.txt` only after READY TO SCAN, puts anything else in `draft_next.not_ready.txt`, and the skill asks the model to quote the result line word for word.
+- **Copied highlighted sentences never clear.** All 13 highlighted sentences that came through unchanged were highlighted again, the five word-equations included.
+- **On this content, length decided almost everything.** Of 77 rewritten units, 60 were highlighted again: 10 of 10 sentences of 14 or more words, 25 of 27 at 10–13 words, 14 of 19 at 7–9 words, and 9 of 17 at 6 words or fewer. The abstract's runs cleared at up to 16 words, so definitional, textbook-style sentences seem to need a different treatment, not just shorter versions of the same definition.
+- **Neighbours barely moved.** Of 75 kept sentences, one flipped each way.
 
 ## Limits
 

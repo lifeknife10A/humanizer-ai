@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 4 Splicer (v7.10.0)
+Unit Test Suite for the Phase 4 Splicer (v7.11.0)
 """
 
 import os
@@ -63,6 +63,28 @@ class TestApplyRuns(unittest.TestCase):
         runs = parse_runs(fill(text, ["KEEP", "We reached 87%."]))
         self.assertEqual(unfilled_runs(runs), [])
         self.assertIn('READY TO SCAN', format_review([], [], [], [], runs=runs))
+
+    def test_output_written_only_when_ready(self):
+        import tempfile
+        from apply_runs import main
+        source = DRAFT
+        text = runs_file(DRAFT, ["Attacks operate at the semantic"])
+        with tempfile.TemporaryDirectory() as d:
+            paths = {k: os.path.join(d, k + '.txt') for k in ('draft', 'source', 'runs', 'out')}
+            for k, v in (('draft', DRAFT), ('source', source), ('runs', fill(text, ["Attacks operate at the semantic level."]))):
+                with open(paths[k], 'w') as f:
+                    f.write(v)
+            with open(paths['out'], 'w') as f:
+                f.write('stale draft')
+            with open(os.devnull, 'w') as null:
+                stdout, sys.stdout = sys.stdout, null
+                try:
+                    code = main([paths['draft'], paths['runs'], '-o', paths['out'], '--source', paths['source']])
+                finally:
+                    sys.stdout = stdout
+            self.assertEqual(code, 1)
+            self.assertFalse(os.path.exists(paths['out']))
+            self.assertTrue(os.path.exists(os.path.join(d, 'out.not_ready.txt')))
 
     def test_multiline_rewrite_is_joined(self):
         text = runs_file(DRAFT, ["Our method reaches"])

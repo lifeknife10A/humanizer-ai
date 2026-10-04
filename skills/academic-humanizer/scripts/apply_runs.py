@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 4 Splicer (v7.10.0)
+Academic Humanizer: Phase 4 Splicer (v7.11.0)
 
 Splices rewritten runs back into a draft. Only the text of each run's
 ORIGINAL block is replaced. Every other character of the draft is copied
@@ -17,10 +17,16 @@ spliced draft but blocks READY TO SCAN. A run made only of headings or formula
 lines may be kept on purpose by writing KEEP in its REWRITE slot (for papers
 whose headings and equations can't change).
 
-Exit codes: 0 ok, 1 checker failure, 2 a run could not be applied.
+With --source, the new draft is written to OUTPUT only when the review ends in
+READY TO SCAN. Otherwise it goes to OUTPUT's name with ".not_ready" before the
+extension, and any older OUTPUT is removed, so a draft that failed review can't
+be scanned by mistake.
+
+Exit codes: 0 ok, 1 checker failure or not ready to scan, 2 a run could not be applied.
 """
 
 import argparse
+import os
 import re
 import sys
 
@@ -36,6 +42,9 @@ LONG_SENTENCE_SLACK = 20
 
 # Writing this in a REWRITE slot keeps a heading- or formula-only run unchanged on purpose.
 KEEP = 'KEEP'
+
+READY = 'PHASE 4 RESULT: READY TO SCAN'
+NOT_READY = 'PHASE 4 RESULT: REVISE runs.txt AND RUN AGAIN'
 
 RUN_HEADER = re.compile(r'^=== RUN (\d+) ===\s*$', re.MULTILINE)
 
@@ -279,12 +288,12 @@ def format_review(inside, outside, general, copied, hedges=(), meaning=((), ()),
                  'detector; leave them unchanged.')
     ok = (not unfilled and not copied and not hedges and not lost and not enumerations and not blocking
           and not any(f['level'] == 'FAIL' for f in general))
-    lines.append('PHASE 4 RESULT: ' + ('READY TO SCAN' if ok else 'REVISE runs.txt AND RUN AGAIN'))
+    lines.append(READY if ok else NOT_READY)
     return '\n'.join(lines)
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.10.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.11.0)')
     parser.add_argument('draft', help='The draft that was scanned')
     parser.add_argument('runs', help='Runs file with REWRITE slots filled in')
     parser.add_argument('-o', '--output', required=True, help='Where to write the new draft')
@@ -303,14 +312,13 @@ def main(argv=None):
         for e in errors:
             print(f'  {e}', file=sys.stderr)
         return 2
-    with open(args.output, 'w', encoding='utf-8') as f:
-        f.write(new_draft)
     skipped = [n for n, _, r in runs if not _filled(r)]
     print(f'Applied runs: {", ".join(map(str, applied)) or "none"}'
           + (f'; left unchanged (empty or {KEEP}): {", ".join(map(str, skipped))}' if skipped else ''))
-    print(f'Everything outside those runs is unchanged. Written to {args.output}')
 
     if not args.source:
+        _write(args.output, new_draft)
+        print(f'Everything outside those runs is unchanged. Written to {args.output}')
         return 0
     with open(args.source, encoding='utf-8') as f:
         source = f.read()
@@ -322,10 +330,32 @@ def main(argv=None):
     print()
     print(format_report(result))
     print()
-    print(format_review(*review_runs(runs, result), hedges=hedge_changes(draft, new_draft),
-                        meaning=run_meaning_changes(runs), enumerations=enumeration_changes(draft, new_draft),
-                        runs=runs))
-    return 0 if result['passed'] else 1
+    review = format_review(*review_runs(runs, result), hedges=hedge_changes(draft, new_draft),
+                           meaning=run_meaning_changes(runs), enumerations=enumeration_changes(draft, new_draft),
+                           runs=runs)
+    print(review)
+    print()
+    if review.endswith(READY):
+        _write(args.output, new_draft)
+        print(f'Everything outside the runs is unchanged. Written to {args.output}')
+        return 0 if result['passed'] else 1
+    pending = not_ready_path(args.output)
+    _write(pending, new_draft)
+    if os.path.exists(args.output) and os.path.abspath(args.output) != os.path.abspath(args.draft):
+        os.remove(args.output)
+    print(f'Not ready to scan. The spliced text is in {pending} for reference only; '
+          f'{args.output} is written once the review says READY TO SCAN.')
+    return 1
+
+
+def not_ready_path(output):
+    stem, ext = os.path.splitext(output)
+    return f'{stem}.not_ready{ext}'
+
+
+def _write(path, text):
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(text)
 
 
 if __name__ == '__main__':
