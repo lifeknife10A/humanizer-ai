@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9+-green.svg)](https://python.org)
-[![Tests: Passing](https://img.shields.io/badge/Tests-43%20Passing-brightgreen.svg)](tests/)
+[![Tests: Passing](https://img.shields.io/badge/Tests-48%20Passing-brightgreen.svg)](tests/)
 [![ZeroGPT Target: <10%](https://img.shields.io/badge/ZeroGPT-2.9%25%20Achieved-success.svg)](benchmarks/)
 
 **Humanizer-AI** is an empirically validated, open-source pipeline designed to transform AI-generated academic papers, theses, and technical reports into authentic scholarship that reliably scores **< 10% AI (or 0%)** on ZeroGPT, Turnitin, and GPTZero in **a single turnkey iteration** while strictly preserving full manuscript length and factual accuracy.
@@ -22,7 +22,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 
 ---
 
-## System Architecture: Fact-Sheet Pipeline (v6.4.0)
+## System Architecture: Fact-Sheet Pipeline (v7.0.0)
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
@@ -68,6 +68,8 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+**Phase 4, detector feedback (v7.0.0).** A single pass lands around 27–35% on ZeroGPT, and local proxies can't predict which sentences ZeroGPT flags (see [the label study](research/ZEROGPT_LABEL_STUDY.md)). To go below 10%, the user scans the output and pastes back the highlighted sentences. `scripts/flagged_runs.py` groups them into runs. The model rewrites only those runs, keeping every unhighlighted sentence, with the same fact and hedge gate. This repeats for up to three rounds.
+
 `humanizer.py` (the v5.0.0 regex engine) is no longer part of the skill pipeline. Its rewrites can split clauses into fragments, glue words together, and drop list items, so the skill now checks the LLM's output instead of rewriting it. The file and its tests remain in the repo.
 
 ---
@@ -92,6 +94,17 @@ We benchmarked this system against **ZeroGPT** using an identical 1,037-word aca
 | `benchmarks/07_master_empir...`| Parameter Expansion | 952w | **Not scored** | Reached 952w by adding sintering & beamline values that are not in the source (28 unsourced numbers). |
 
 > **Fidelity note:** Benchmarks 02–04, 06 and 07 contain values that are not in the baseline source, such as 3,860 mAh g⁻¹, 6.5 MPa and 98% density. Benchmark 07 has 28 unsourced numbers in total (sintering, beamline and cycling figures). They are kept as historical records. Run `python3 skills/academic-humanizer/scripts/check_draft.py benchmarks/00_baseline_raw_1037w_100pct_ai.txt <benchmark>` to list them.
+
+### Second test abstract: LLM adversarial robustness (Haiku 4.5, 995 words)
+
+| Run | Skill | Words | ZeroGPT AI % | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| Raw abstract | n/a | 995 | **80%** | |
+| Gemini 3.6 (low) | v6.2 | 999 | **35.3%** | Lost hedges, invented short claims, dropped 2 sentences |
+| Opus 5.5 | v6.2 | 998 | **27.2%** | Fully faithful |
+| Gemini 3.6 (low) | v6.3 | 992 | **30.5%** | Faithful; padded with restatements |
+
+Texts and sentence-level ZeroGPT labels are in [`research/data/`](research/data/).
 
 ---
 
@@ -162,6 +175,9 @@ python3 -m unittest discover -s tests
 - **[SKILL.md](skills/academic-humanizer/SKILL.md)**: The skill: inputs, procedure, hard constraints, style rules and examples for Phases 1–3.
 - **[fact_sheet_template.md](skills/academic-humanizer/fact_sheet_template.md)**: Template for the author's fact sheet, the only allowed source of added specifics.
 - **[check_draft.py](skills/academic-humanizer/scripts/check_draft.py)**: The Phase 2 checker (fact ledger, fact checks, style checks).
+- **[flagged_runs.py](skills/academic-humanizer/scripts/flagged_runs.py)**: The Phase 4 helper that groups detector highlights into runs.
+- **[research/LITERATURE_REVIEW.md](research/LITERATURE_REVIEW.md)**: A cited review of how AI-text detectors and humanizers work.
+- **[research/ZEROGPT_LABEL_STUDY.md](research/ZEROGPT_LABEL_STUDY.md)**: Which sentence properties predict ZeroGPT highlights, from 292 labelled sentences.
 
 ---
 

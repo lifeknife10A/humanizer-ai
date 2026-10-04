@@ -2,7 +2,7 @@
 name: academic-humanizer
 description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Use when asked to humanize, de-AI, or rewrite academic text."
 metadata:
-  version: "6.4.0"
+  version: "7.0.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v6.4.0)
+# Academic Humanizer (v7.0.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -76,10 +76,30 @@ If no fact sheet was given, don't stop to ask for one. Work from the source alon
    - the fact-sheet details you used
    - anything left unresolved, with the reason (for example, a retention shortfall or a conflict between the source and the fact sheet)
    - **Details you could add**: vague spots in the source where the author's real specifics would help, written as questions. Example: "Spark plasma sintering: what temperature, pressure, and hold time?" Ask these; never answer them yourself.
+   - an offer to run Phase 4: scan the text, then send back the highlighted sentences
 
 Never deliver with a `new-number` or `missing-number` failure. Both can always be fixed by deleting an added number or restoring a dropped one.
 
 If you can't run Python, do steps 2 and 5 by hand. List every number, acronym, and formula in the source and fact sheet, then compare your draft against that list sentence by sentence.
+
+## Phase 4: Detector feedback (for scores under 10%)
+
+Steps 1–7 are one pass, and on our tests a single pass lands around 27–35% on ZeroGPT. Local proxies can't predict which sentences ZeroGPT will flag (see `research/ZEROGPT_LABEL_STUDY.md` in the repo), so getting under 10% takes the detector's own feedback. Offer this phase at delivery. Run it when the user returns with a scan.
+
+1. **Get the highlights.** Ask the user to scan the delivered text and paste the highlighted (yellow) sentences, one per line, or send screenshots. If they send screenshots, transcribe each highlighted sentence's opening words into `flagged.txt`, one per line. Save the scanned text as `draft.txt` if it isn't already.
+2. **Group them into runs.**
+   ```bash
+   python3 SKILL_DIR/scripts/flagged_runs.py draft.txt flagged.txt
+   ```
+   It reports the estimated score (ZeroGPT's percentage tracks the highlighted share of words) and the runs: consecutive highlighted sentences, with one unhighlighted sentence bridged.
+3. **Rewrite each run as a unit.** Highlights come in runs because the detector scores windows, so rewriting one sentence of a run rarely clears it.
+   - Change only run sentences. Every unhighlighted sentence passed, so leave it word for word.
+   - Restructure the run instead of polishing it. Reorder its claims, change grammatical subjects, merge or split sentences across the run, and connect sentences to each other ("whereas", "because", relative clauses) rather than writing standalone declaratives.
+   - Prefer the authors' actions to abstract nouns ("We sorted the attacks into four groups" over "The framework categorizes attacks").
+   - All hard constraints still apply. Restructuring is not permission to add claims.
+4. **Make two variants when the user is willing to scan twice.** Variant A uses longer, connected sentences, allowing up to about 30 words. Variant B uses the authors' voice within the 16-word cap. The variant that scans lower shows which direction works for this text; continue with it.
+5. **Check every variant** with `check_draft.py` against the original source (not the previous draft), then deliver it for the next scan.
+6. **Stop** when the score is under 10%, after three feedback rounds, or when a round doesn't lower the score. Report the score history.
 
 ## Hard constraints
 
