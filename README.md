@@ -22,7 +22,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 
 ---
 
-## System Architecture: Fact-Sheet Pipeline (v7.6.1)
+## System Architecture: Fact-Sheet Pipeline (v7.7.0)
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
@@ -68,7 +68,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Phase 4, detector feedback (v7.6.1).** A single pass lands around 27–35% on ZeroGPT, and local proxies can't predict which sentences ZeroGPT flags (see [the label study](research/ZEROGPT_LABEL_STUDY.md)). To go below 10%, the user scans the output and pastes back the highlighted sentences. `scripts/flagged_runs.py` groups them into runs and writes a fill-in file. The model writes only the rewrite of each run, and `scripts/apply_runs.py` splices those in. Every other sentence stays byte-for-byte the same, and the result is rechecked against the source. This repeats for up to three rounds. On the second test abstract, two rounds took ZeroGPT from 27.2% to 5.3% (v7.1.0 reproduces that round exactly).
+**Phase 4, detector feedback (v7.7.0).** A single pass lands around 27–35% on ZeroGPT, and local proxies can't predict which sentences ZeroGPT flags (see [the label study](research/ZEROGPT_LABEL_STUDY.md)). To go below 10%, the user scans the output and pastes back the highlighted sentences. `scripts/flagged_runs.py` groups them into runs and writes a fill-in file. The model writes only the rewrite of each run, and `scripts/apply_runs.py` splices those in. Every other sentence stays byte-for-byte the same, and the result is rechecked against the source. This repeats for up to three rounds. On the second test abstract, two rounds took ZeroGPT from 27.2% to 5.3% (v7.1.0 reproduces that round exactly).
 
 `humanizer.py` (the v5.0.0 regex engine) is no longer part of the skill pipeline. Its rewrites can split clauses into fragments, glue words together, and drop list items, so the skill now checks the LLM's output instead of rewriting it. The file and its tests remain in the repo.
 

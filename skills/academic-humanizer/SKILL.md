@@ -2,7 +2,7 @@
 name: academic-humanizer
 description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
 metadata:
-  version: "7.6.1"
+  version: "7.7.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.6.1)
+# Academic Humanizer (v7.7.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -41,9 +41,13 @@ If no fact sheet was given, don't stop to ask for one. Work from the source alon
    python3 SKILL_DIR/scripts/check_draft.py source.txt --facts facts.md
    ```
    It lists every number, acronym, and formula in the source (all must appear in your draft) and in the fact sheet (these may be added). Nothing else may appear in your draft. Drop `--facts facts.md` when there is no fact sheet.
-3. **Rewrite (Phase 1)** paragraph by paragraph, following the hard constraints and then the style rules below. Leave titles and headings unchanged. Save the result as `draft.txt`.
+3. **Rewrite (Phase 1)** paragraph by paragraph, following the hard constraints and then the style rules below. Leave the title unchanged; section headings follow the structured-paper rules below. Save the result as `draft.txt`.
 
-   For structured papers, keep the structure: numbered section headings stay as they are, bulleted lists stay bulleted, and formula lines (lines with "=") stay character for character. Rewrite the prose inside bullets. A bullet's "Label: description" colon is fine, and so is a colon that introduces a list.
+   **Structured papers** (numbered sections, bulleted "Label: description" lists, word-equations): restructure them into prose, unless the user says the format is fixed. On our test paper, a single pass that kept the bullets only got from 96.4% to 69.2%. Nearly every "Label: description" bullet was highlighted, and so were most headings and formula lines, which alone made up about 8 points.
+   - **Lists become prose paragraphs.** Every item stays (H4), and each label's concept stays as a phrase in the prose. "- Grid Frequency Instability: Inverter-based plants lack rotational inertia…" becomes "Frequency stability suffers first. Inverter-based plants lack the rotational inertia…". Sub-bullets become sentences in their parent item's paragraph. Vary how the items are introduced (S5); don't open every item with its label.
+   - **Section headings are reworded in plain language,** keeping their numbers and meaning. "2. Machine Learning Methodologies for Renewable Generation Forecasting" becomes "2. Forecasting renewable output with machine learning". Keep the paper's title unless the user asks to change it.
+   - **Word-equations go into symbolic form,** with the variables defined in the next sentence. "Available Kinetic Power = 0.5 * Air Density * Rotor Area * (Wind Velocity)^3" becomes "P = 0.5 ρ A v^3", followed by "Here ρ is air density, A the rotor area and v the wind velocity." Keep every number and operator; only the names change.
+   - **If the user says the format is fixed,** keep the headings, bullets and formula lines, and rewrite only the prose inside the bullets. A bullet's "Label: description" colon is fine then. Tell the user that ZeroGPT still counts those fixed parts, so under 10% is unlikely.
 4. **Fidelity reread.** The checker can't see claims or lists, so do this before checking. Put each source paragraph next to its rewrite and confirm:
    - every list item is still there (H4)
    - every claim is still there, and none was added (H3). Check short sentences hardest: if you can't point to the source sentence one comes from ("Pixel perturbations fail here."), delete it
@@ -110,7 +114,7 @@ Offer this phase at delivery. Run it when the user comes back with a scan. **Nev
    - **Prefer plain verbs and concrete phrasing to abstract nouns:** "Multi-turn exploitation plays a longer game. Its adversarial effects pile up across the conversation history."
    - **Leading with the point also works:** "Getting past safety mechanisms is the aim of jailbreaks." It scored the same as the authors' voice in round 3.
    - **Read the CONTEXT lines** so the rewrite still connects to the sentences around it.
-   - **Keep bullets as bullets.** If a run spans bullet lines, start each rewritten bullet on its own line with the same marker ("- "). `apply_runs.py` keeps those line breaks. Never rewrite a formula line.
+   - **Bullets:** if the user kept the paper's bullets, start each rewritten bullet on its own line with the same marker ("- "); `apply_runs.py` keeps those line breaks. A highlighted formula line may be rewritten in symbolic form (see the structured-paper rules), keeping every number and operator.
    - **Add nothing,** not even a harmless-looking modifier ("tested with care", "improves robustness markedly"). Every word of a rewrite must trace to the run's ORIGINAL or the source.
    - **Keep what each sentence does.** An aim stays an aim: "focusing on identifying vulnerability patterns" never becomes "These models showed vulnerability patterns." What the authors introduce stays introduced: "We introduce a novel framework that sorts attacks into four dimensions" never becomes "Four attack dimensions emerged." 
 4. **Splice and check.**

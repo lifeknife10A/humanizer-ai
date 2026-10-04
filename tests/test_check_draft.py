@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 2 Draft Checker (v7.6.1)
+Unit Test Suite for the Phase 2 Draft Checker (v7.7.0)
 Validates fact extraction, fact-sheet enforcement, and style warnings.
 """
 
