@@ -2,7 +2,7 @@
 name: academic-humanizer
 description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
 metadata:
-  version: "7.2.0"
+  version: "7.3.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.2.0)
+# Academic Humanizer (v7.3.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -114,7 +114,8 @@ Offer this phase at delivery. Run it when the user comes back with a scan. **Nev
    python3 SKILL_DIR/scripts/apply_runs.py draft.txt runs.txt -o draft_next.txt --source source.txt --facts facts.md
    ```
    Drop `--facts facts.md` when there's no fact sheet. It replaces only the runs, copies everything else unchanged, and checks the result against the original source, never the previous draft. Its PHASE 4 REVIEW sorts the findings for you:
-   - **Highlighted sentences copied unchanged into a rewrite:** rewrite them. A sentence the detector flagged will be flagged again.
+   - **Highlighted sentences barely changed:** your rewrite kept 80% or more of the sentence's words. Restructure it. In rounds that lowered the score, rewrites kept about half of each highlighted sentence's words and never more than 79%; near-copies get flagged again.
+   - **Hedges changed by your rewrites:** you dropped a "may", "often" or "suggests", or added a "must". Restore the hedging of the sentence you rewrote.
    - **Warnings inside your rewrites:** fix every one in `runs.txt`. These are problems you introduced.
    - **Whole-document findings:** fix any failure, and check each hedge or drop warning.
    - **Warnings in sentences outside the runs:** ignore them. Those sentences already passed the detector.

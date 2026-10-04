@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9+-green.svg)](https://python.org)
-[![Tests: Passing](https://img.shields.io/badge/Tests-54%20Passing-brightgreen.svg)](tests/)
+[![Tests: Passing](https://img.shields.io/badge/Tests-56%20Passing-brightgreen.svg)](tests/)
 [![ZeroGPT Target: <10%](https://img.shields.io/badge/ZeroGPT-2.9%25%20Achieved-success.svg)](benchmarks/)
 
 **Humanizer-AI** is an empirically validated, open-source pipeline designed to transform AI-generated academic papers, theses, and technical reports into authentic scholarship that reliably scores **< 10% AI (or 0%)** on ZeroGPT, Turnitin, and GPTZero in **a single turnkey iteration** while strictly preserving full manuscript length and factual accuracy.
@@ -22,7 +22,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 
 ---
 
-## System Architecture: Fact-Sheet Pipeline (v7.2.0)
+## System Architecture: Fact-Sheet Pipeline (v7.3.0)
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
@@ -68,7 +68,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Phase 4, detector feedback (v7.2.0).** A single pass lands around 27–35% on ZeroGPT, and local proxies can't predict which sentences ZeroGPT flags (see [the label study](research/ZEROGPT_LABEL_STUDY.md)). To go below 10%, the user scans the output and pastes back the highlighted sentences. `scripts/flagged_runs.py` groups them into runs and writes a fill-in file. The model writes only the rewrite of each run, and `scripts/apply_runs.py` splices those in. Every other sentence stays byte-for-byte the same, and the result is rechecked against the source. This repeats for up to three rounds. On the second test abstract, two rounds took ZeroGPT from 27.2% to 5.3% (v7.1.0 reproduces that round exactly).
+**Phase 4, detector feedback (v7.3.0).** A single pass lands around 27–35% on ZeroGPT, and local proxies can't predict which sentences ZeroGPT flags (see [the label study](research/ZEROGPT_LABEL_STUDY.md)). To go below 10%, the user scans the output and pastes back the highlighted sentences. `scripts/flagged_runs.py` groups them into runs and writes a fill-in file. The model writes only the rewrite of each run, and `scripts/apply_runs.py` splices those in. Every other sentence stays byte-for-byte the same, and the result is rechecked against the source. This repeats for up to three rounds. On the second test abstract, two rounds took ZeroGPT from 27.2% to 5.3% (v7.1.0 reproduces that round exactly).
 
 `humanizer.py` (the v5.0.0 regex engine) is no longer part of the skill pipeline. Its rewrites can split clauses into fragments, glue words together, and drop list items, so the skill now checks the LLM's output instead of rewriting it. The file and its tests remain in the repo.
 

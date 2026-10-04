@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 4 Splicer (v7.2.0)
+Unit Test Suite for the Phase 4 Splicer (v7.3.0)
 """
 
 import os
@@ -54,8 +54,23 @@ class TestApplyRuns(unittest.TestCase):
         runs = parse_runs(fill(text, ["Syntactic attacks manipulate structure. Furthermore, we sorted them; it helped."]))
         new, _, _ = splice(DRAFT, runs)
         inside, outside, general, copied = review_runs(runs, check(DRAFT, new))
-        self.assertEqual(copied, [(1, 'Syntactic attacks manipulate structure.')])
+        self.assertEqual([(n, s) for n, s, _ in copied], [(1, 'Syntactic attacks manipulate structure.')])
         self.assertTrue({'stock-phrase', 'semicolon'} <= {f['kind'] for f in inside})
+
+    def test_lost_hedge_blocks_ready(self):
+        from apply_runs import hedge_changes
+        self.assertEqual(hedge_changes("They may also require new methods.", "We need new methods."),
+                         ['possibility hedges went from 1 to 0'])
+        self.assertEqual(hedge_changes("Teams should coordinate.", "Teams must coordinate."), ['a "must" was added'])
+        self.assertEqual(hedge_changes("It may fail.", "Failure may follow."), [])
+
+    def test_near_copy_counts_as_barely_changed(self):
+        from apply_runs import review_runs
+        from check_draft import check
+        runs = [(1, "Syntactic attacks change linguistic structure while preserving surface semantics.",
+                 "Syntactic attacks change linguistic structure while keeping surface semantics.")]
+        _, _, _, copied = review_runs(runs, check(DRAFT, DRAFT))
+        self.assertEqual(len(copied), 1)
 
     def test_edited_original_is_rejected(self):
         runs = [(1, "This sentence is not in the draft.", "Replacement.")]
