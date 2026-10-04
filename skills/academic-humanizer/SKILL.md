@@ -84,7 +84,7 @@ If you can't run Python, do steps 2 and 5 by hand. List every number, acronym, a
 
 ## Phase 4: Detector feedback (for scores under 10%)
 
-Steps 1–7 are one pass, and on our tests a single pass lands around 27–35% on ZeroGPT. Local proxies can't predict which sentences ZeroGPT will flag (see `research/ZEROGPT_LABEL_STUDY.md` in the repo), so getting under 10% takes the detector's own feedback. Offer this phase at delivery. Run it when the user returns with a scan.
+Steps 1–7 are one pass, and on our tests a single pass lands around 27–35% on ZeroGPT. On the same abstract, two feedback rounds took it from 27.2% to 5.3% with all facts intact. Local proxies can't predict which sentences ZeroGPT will flag (see `research/ZEROGPT_LABEL_STUDY.md` in the repo), so getting under 10% takes the detector's own feedback. Offer this phase at delivery. Run it when the user returns with a scan.
 
 1. **Get the highlights.** Ask the user to scan the delivered text and paste the highlighted (yellow) sentences, one per line, or send screenshots. If they send screenshots, transcribe each highlighted sentence's opening words into `flagged.txt`, one per line. Save the scanned text as `draft.txt` if it isn't already.
 2. **Group them into runs.**

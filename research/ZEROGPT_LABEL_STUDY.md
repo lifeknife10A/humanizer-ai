@@ -32,10 +32,13 @@ We transcribed ZeroGPT's sentence highlighting for three rewrites of the same Ha
 | 1 | `llm_opus55_v6.2.txt` | Single pass, skill v6.2 | 27.2% |
 | 2 | `llm_round2_variant_A.txt` | Rewrote the 7 highlighted runs as longer, connected sentences | 19.5% |
 | 2 | `llm_round2_variant_B.txt` | Rewrote the same runs in the authors' voice within the 16-word cap | **13.9%** |
-| 3 | `llm_round3_variant_C.txt` / `_D.txt` | Rewrote B's 5 remaining runs: C continues B's style, D fronts the predicate ("…is the aim of jailbreaks") | pending |
+| 3 | `llm_round3_variant_C.txt` | Rewrote B's 5 remaining runs, continuing B's style | **5.3%** |
+| 3 | `llm_round3_variant_D.txt` | Rewrote the same runs with the predicate fronted ("…is the aim of jailbreaks") | **5.5%** |
 
 Observations:
 - **Highlight share still tracks the score:** 13.6% estimated against 13.9% for B, 21.0% against 19.5% for A.
+- **Two feedback rounds took the text from 27.2% to 5.3%,** with every number, hedge and list item intact (`check_draft.py` passes). Only the title and the first three sentences remain highlighted (3.9% of words; the title makes up the rest). The two round-3 styles scored the same, so after B's approach the choice of style mattered less than rewriting exactly the highlighted runs.
+- **The opening framing is the hardest part.** It was highlighted in every round and every variant.
 - **One round of run-level rewriting cut the score by half (B).** The 16-word cap with the authors' voice beat longer connected prose.
 - **Neighbours can flip.** Some sentences kept word for word were unhighlighted in round 1 but highlighted in round 2, for example "Such inputs are designed to elicit unintended or harmful outputs." This is more evidence that ZeroGPT scores context windows.
 

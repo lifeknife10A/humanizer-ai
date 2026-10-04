@@ -152,5 +152,24 @@
    "First is adversarial training, where",
    "Second, input preprocessing and sanitization try"
   ]
+ },
+ "round3_C": {
+  "file": "llm_round3_variant_C.txt",
+  "zerogpt_score": 5.3,
+  "yellow_prefixes": [
+   "Large language models (LLMs) handle natural",
+   "On diverse applications their performance",
+   "The trouble starts when they are deployed"
+  ]
+ },
+ "round3_D": {
+  "file": "llm_round3_variant_D.txt",
+  "zerogpt_score": 5.5,
+  "yellow_prefixes": [
+   "Natural language understanding and generation are tasks",
+   "State-of-the-art performance across diverse",
+   "Wide deployment in safety-critical domains"
+  ],
+  "unknown_from_prefix": "For image classification systems the picture"
  }
 }

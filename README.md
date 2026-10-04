@@ -103,6 +103,8 @@ We benchmarked this system against **ZeroGPT** using an identical 1,037-word aca
 | Gemini 3.6 (low) | v6.2 | 999 | **35.3%** | Lost hedges, invented short claims, dropped 2 sentences |
 | Opus 5.5 | v6.2 | 998 | **27.2%** | Fully faithful |
 | Gemini 3.6 (low) | v6.3 | 992 | **30.5%** | Faithful; padded with restatements |
+| Opus 5.5 + Phase 4 round 1 | v7.0 | 992 | **13.9%** | Rewrote only the 7 highlighted runs (authors' voice) |
+| Opus 5.5 + Phase 4 round 2 | v7.0 | 1,028 | **5.3%** | Rewrote the 5 remaining runs; only the title and first 3 sentences are still highlighted |
 
 Texts and sentence-level ZeroGPT labels are in [`research/data/`](research/data/).
 
