@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 4 Splicer (v7.3.0)
+Unit Test Suite for the Phase 4 Splicer (v7.4.0)
 """
 
 import os
@@ -71,6 +71,21 @@ class TestApplyRuns(unittest.TestCase):
                  "Syntactic attacks change linguistic structure while keeping surface semantics.")]
         _, _, _, copied = review_runs(runs, check(DRAFT, DRAFT))
         self.assertEqual(len(copied), 1)
+
+    def test_dropped_limiter_in_a_run_blocks(self):
+        from apply_runs import run_meaning_changes
+        runs = [(7, "Robustness does not correlate strongly with scale. Some larger models fare worse.",
+                 "Robustness didn't correlate with scale. Larger models fared worse.")]
+        lost, dropped = run_meaning_changes(runs)
+        self.assertEqual(len(lost), 1)
+        self.assertIn('strongly', lost[0])
+        self.assertTrue(any('stron' in d for d in dropped))
+
+    def test_not_only_is_not_a_limiter(self):
+        from apply_runs import run_meaning_changes
+        runs = [(1, "It requires not only defensive measures but also understanding.",
+                 "It requires more than defensive measures. It requires understanding.")]
+        self.assertEqual(run_meaning_changes(runs)[0], [])
 
     def test_edited_original_is_rejected(self):
         runs = [(1, "This sentence is not in the draft.", "Replacement.")]

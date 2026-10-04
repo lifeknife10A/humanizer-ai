@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 2 Draft Checker (v7.3.0)
+Unit Test Suite for the Phase 2 Draft Checker (v7.4.0)
 Validates fact extraction, fact-sheet enforcement, and style warnings.
 """
 
@@ -136,6 +136,11 @@ class TestFactChecks(unittest.TestCase):
         firm = "Results show larger models resist attacks less than expected in these runs here."
         self.assertNotIn('hedge', kinds(check(source, hedged)))
         self.assertIn('hedge', kinds(check(source, firm)))
+
+    def test_dropped_limiter_warns(self):
+        source = "Some larger models show worse robustness, and output filtering provides only surface protection."
+        draft = "Larger models show worse robustness, and output filtering provides surface protection here."
+        self.assertIn('hedge', kinds(check(source, draft)))
 
     def test_stronger_modal_warns(self):
         source = "Robustness should not be treated as an isolated problem by the field."

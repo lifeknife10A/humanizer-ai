@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 4 Splicer (v7.3.0)
+Academic Humanizer: Phase 4 Splicer (v7.4.0)
 
 Splices rewritten runs back into a draft. Only the text of each run's
 ORIGINAL block is replaced. Every other character of the draft is copied
@@ -19,7 +19,7 @@ import argparse
 import re
 import sys
 
-from check_draft import HEDGE_CLASSES, MUST, check, format_report, segment
+from check_draft import HEDGE_CLASSES, MUST, _stems, check, format_report, segment
 
 # Rewrites that cleared ZeroGPT runs kept at most 79% of each highlighted sentence's
 # words (typically 42-50%); near-copies at 80% or more were flagged again.
@@ -119,6 +119,24 @@ def hedge_changes(before, after):
     return lost
 
 
+def run_meaning_changes(runs):
+    """Per run: hedges or limiters the rewrite lost (blocking) and content words it dropped (to check)."""
+    lost, dropped = [], []
+    for number, original, rewrite in runs:
+        if not rewrite:
+            continue
+        for kind, pattern in HEDGE_CLASSES.items():
+            before = [m.lower() for m in re.findall(pattern, original, re.IGNORECASE)]
+            after = len(re.findall(pattern, rewrite, re.IGNORECASE))
+            if after < len(before):
+                lost.append(f'Run {number}: {kind} words went from {len(before)} to {after} '
+                            f'(original has: {", ".join(before)})')
+        gone = sorted(_stems(original) - _stems(rewrite))
+        if gone:
+            dropped.append(f'Run {number}: {", ".join(gone)}')
+    return lost, dropped
+
+
 def review_runs(runs, result):
     """Sorts checker findings into those inside rewritten runs (fix) and those outside (leave),
     and flags highlighted sentences that a rewrite barely changed."""
@@ -150,15 +168,21 @@ def _minor(finding):
     return finding['kind'] == 'long-sentence' and len(finding['text'].split()) <= LONG_SENTENCE_SLACK
 
 
-def format_review(inside, outside, general, copied, hedges=()):
+def format_review(inside, outside, general, copied, hedges=(), meaning=((), ())):
     lines = ['=== PHASE 4 REVIEW ===']
     if copied:
         lines.append(f'Highlighted sentences barely changed (rewrite keeps {BARELY_CHANGED:.0%}+ of their words; '
                      'restructure them, or they will be flagged again):')
         lines.extend(f'  Run {n}: {o:.0%} kept: "{s}"' for n, s, o in copied)
-    if hedges:
-        lines.append('Hedges changed by your rewrites (restore the source\'s hedging):')
-        lines.extend(f'  {h}' for h in hedges)
+    lost, dropped = meaning
+    if hedges or lost:
+        lines.append('Hedges or limiting words lost in your rewrites (restore them; dropping "some", '
+                     '"strongly", "may" or "only" overclaims):')
+        lines.extend(f'  {h}' for h in list(lost) + list(hedges))
+    if dropped:
+        lines.append('Word stems in a run\'s ORIGINAL that its rewrite no longer has. Synonyms are fine; '
+                     'make sure no claim, item or qualifier went missing:')
+        lines.extend(f'  {d}' for d in dropped)
     blocking = [f for f in inside if not _minor(f)]
     lines.append(f'Warnings inside your rewrites (fix these): {len(blocking)}')
     for f in blocking:
@@ -173,13 +197,13 @@ def format_review(inside, outside, general, copied, hedges=()):
         lines.append(f'  {f["level"]}  {f["kind"]}: {f["message"]}{where}')
     lines.append(f'Warnings in sentences outside the runs: {len(outside)}. Those sentences already passed the '
                  'detector; leave them unchanged.')
-    ok = not copied and not hedges and not blocking and not any(f['level'] == 'FAIL' for f in general)
+    ok = not copied and not hedges and not lost and not blocking and not any(f['level'] == 'FAIL' for f in general)
     lines.append('PHASE 4 RESULT: ' + ('READY TO SCAN' if ok else 'REVISE runs.txt AND RUN AGAIN'))
     return '\n'.join(lines)
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.3.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.4.0)')
     parser.add_argument('draft', help='The draft that was scanned')
     parser.add_argument('runs', help='Runs file with REWRITE slots filled in')
     parser.add_argument('-o', '--output', required=True, help='Where to write the new draft')
@@ -217,7 +241,8 @@ def main(argv=None):
     print()
     print(format_report(result))
     print()
-    print(format_review(*review_runs(runs, result), hedges=hedge_changes(draft, new_draft)))
+    print(format_review(*review_runs(runs, result), hedges=hedge_changes(draft, new_draft),
+                        meaning=run_meaning_changes(runs)))
     return 0 if result['passed'] else 1
 
 

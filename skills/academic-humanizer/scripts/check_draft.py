@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 2 Draft Checker (v7.3.0)
+Academic Humanizer: Phase 2 Draft Checker (v7.4.0)
 
 Compares a rewritten draft against its source text and an optional
 author-supplied fact sheet. It reports problems; it never rewrites text.
@@ -99,6 +99,9 @@ HEDGE_CLASSES = {
     'frequency': r'\b(?:often|frequently|occasional(?:ly)?|sometimes|typically|usually|generally|commonly|rarely)\b',
     'evidential': (r'\b(?:suggest(?:s|ed|ing)?|indicat(?:e|es|ed|ing)|appear(?:s|ed)?|seem(?:s|ed)?'
                    r'|likely|unlikely|impl(?:y|ies|ied|ying)|points? to)\b'),
+    # Limiters narrow a claim; dropping one ("some larger models" -> "larger models") overclaims.
+    'limiting': (r'\b(?:some|certain|partly|partially|largely|mostly|strongly|slightly|relatively'
+                 r'|(?<!not )only)\b'),
 }
 MUST = re.compile(r'\bmust\b', re.IGNORECASE)
 DROP_STOPWORDS = set(
@@ -468,7 +471,7 @@ def _read(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.3.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.4.0)')
     parser.add_argument('source', help='Original text file')
     parser.add_argument('draft', nargs='?', help='Rewritten draft (omit to print the fact ledger)')
     parser.add_argument('--facts', help='Author-supplied fact sheet')

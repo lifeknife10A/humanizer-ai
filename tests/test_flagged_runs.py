@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 4 Detector-Feedback Helper (v7.3.0)
+Unit Test Suite for the Phase 4 Detector-Feedback Helper (v7.4.0)
 """
 
 import os
