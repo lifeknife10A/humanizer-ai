@@ -8,6 +8,7 @@ Welcome to **Humanizer-AI**. This guide is designed for autonomous AI coding age
 
 ```
 humanizer-ai/
+├── .claude/skills/academic-humanizer  # Symlink to skills/academic-humanizer (auto-loads in Claude Code)
 ├── README.md               # Main project overview, architecture & quickstart
 ├── MATHEMATICS.md          # Theoretical & information-theoretic formulas (PPL, Burstiness, Zipf)
 ├── CHALLENGES.md           # Engineering log of all iterations, failures, and bottlenecks

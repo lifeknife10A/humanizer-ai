@@ -118,7 +118,7 @@ cd humanizer-ai
 ```
 
 ### 2. Run the Skill
-Install `skills/academic-humanizer/` in your agent and invoke `/humanize` with the source text. If you have real details to add (parameters, instrument settings, results, citations), fill in a copy of [`fact_sheet_template.md`](skills/academic-humanizer/fact_sheet_template.md) and pass it along. Without a fact sheet, the skill adds no new detail and ends with a list of questions about what you could add.
+In Claude Code, open this repository and the skill is available automatically: `.claude/skills/academic-humanizer` links to `skills/academic-humanizer/`. Run `/academic-humanizer` with the source text, or ask Claude to humanize it. For other agents, install `skills/academic-humanizer/` the way that agent loads skills. If you have real details to add (parameters, instrument settings, results, citations), fill in a copy of [`fact_sheet_template.md`](skills/academic-humanizer/fact_sheet_template.md) and pass it along. Without a fact sheet, the skill adds no new detail and ends with a list of questions about what you could add.
 
 ### 3. Run the Checker Directly
 ```bash
