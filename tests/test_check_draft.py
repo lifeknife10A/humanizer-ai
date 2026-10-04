@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 2 Draft Checker (v7.7.0)
+Unit Test Suite for the Phase 2 Draft Checker (v7.8.0)
 Validates fact extraction, fact-sheet enforcement, and style warnings.
 """
 
@@ -209,6 +209,14 @@ class TestStyleChecks(unittest.TestCase):
         draft = ' '.join(sentences + ["Resistance rose during cycling.", "Contact was lost at the interface."])
         found = [f['message'] for f in check(draft, draft)['findings'] if f['kind'] == 'add-on']
         self.assertTrue(any('alongside' in m for m in found))
+
+    def test_staccato_warns(self):
+        choppy = ' '.join(["Solar irradiance fluctuates.", "Ambient temperature varies.", "Cloud cover changes.",
+                           "Wind speed is unpredictable.", "Grids must adapt quickly."] * 3)
+        self.assertIn('staccato', kinds(check(choppy, choppy)))
+        medium = "Interfacial resistance rose steadily across the first fifty cycles of testing."
+        varied = ' '.join([medium] * 8 + ["Resistance tripled.", "Coated cells survived."])
+        self.assertNotIn('staccato', kinds(check(varied, varied)))
 
     def test_short_sentence_share(self):
         medium = "Interfacial resistance rose steadily across the first fifty cycles of testing."

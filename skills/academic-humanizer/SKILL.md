@@ -2,7 +2,7 @@
 name: academic-humanizer
 description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
 metadata:
-  version: "7.7.0"
+  version: "7.8.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.7.0)
+# Academic Humanizer (v7.8.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -66,6 +66,7 @@ If no fact sheet was given, don't stop to ask for one. Work from the source alon
    - `new-term` WARN: use the source's wording unless the fact sheet gives the term. To shorten a term the source spells out, define the abbreviation at first use: "electrochemical impedance spectroscopy (EIS)".
    - `retention` FAIL (too short): unpack more sentences, or use more fact-sheet detail. If neither is possible without padding, leave the shortfall and report it.
    - `retention` WARN (too long): cut filler (see H5), define abbreviations for long repeated terms, and merge fragments you over-split. If the extra length comes from fact-sheet detail (the draft minus the words those details added is within 110%), leave it and report it so the author can decide against any word limit.
+   - `staccato` WARN: too many short sentences, or an average under 8 words. Merge runs of short sentences into fuller ones of 8–16 words. A list of items can share one sentence ("Solar irradiance, temperature and cloud cover all vary, and so does wind speed.").
    - `short-sentences` WARN: lead with a claim's core in 3–5 words and move its details to the next sentence (see S2). If no claim is left that splits naturally, stop and report the share; never split off a modifier to reach the number.
    - `add-on` WARN: work the item in another way (see S5) instead of tacking it on with "too", "as well", or "also".
    - `restatement` WARN: the short sentence only repeats its neighbours ("Robustness requires fundamental advances." right after "achieving robust LLMs will require fundamental advances"). Delete it; never pad to reach the short-sentence share.
@@ -152,7 +153,7 @@ The checker enforces H1 and the length floor in H5, and flags likely H2 violatio
 Apply these within the hard constraints. When a style rule and a hard constraint conflict, the hard constraint wins.
 
 - **S1. Sentence length.** Keep sentences to 16 words or fewer. Unpack longer ones into complete sentences that keep every clause.
-- **S2. Short sentences.** Aim for about one sentence in five with 5 words or fewer, placed irregularly. The checker warns below 15%. The natural way to get one is to lead with a claim's core and give its details in the next sentence: "Interfacial impedance escalated rapidly. Over the first fifty cycles at 1.0 mA cm⁻², area-specific resistance rose by 312%." Each short sentence needs its own subject and a verb that states something the source claims. Never make one by:
+- **S2. Short sentences.** Aim for about one sentence in five with 5 words or fewer, placed irregularly. The checker warns below 15% and above 30%, and when the average sentence drops under 8 words. Choppy text fails just as surely as long-winded text: "Solar irradiance fluctuates. Ambient temperature varies. Cloud cover changes." reads as machine-made. Most sentences should be 8–16 words. The natural way to get one is to lead with a claim's core and give its details in the next sentence: "Interfacial impedance escalated rapidly. Over the first fifty cycles at 1.0 mA cm⁻², area-specific resistance rose by 312%." Each short sentence needs its own subject and a verb that states something the source claims. Never make one by:
   - splitting off a modifier ("Protocols should be standardized. These should be rigorous.", "Demand surged. It grew exponentially.")
   - adding a generic slogan ("The math reflects physics.")
   - reusing a short sentence or its wording frame ("Peak currents compound damage." then "Mechanical loads compound stress.")

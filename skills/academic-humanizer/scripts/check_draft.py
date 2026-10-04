@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 2 Draft Checker (v7.7.0)
+Academic Humanizer: Phase 2 Draft Checker (v7.8.0)
 
 Compares a rewritten draft against its source text and an optional
 author-supplied fact sheet. It reports problems; it never rewrites text.
@@ -112,6 +112,8 @@ MIN_DROP_WORDS = 3
 MIN_DROP_SHARE = 0.3
 NEAR_DUPLICATE = 0.75
 # A short sentence whose content words all appear within two sentences of it adds nothing.
+MIN_MEAN_WORDS = 8.0
+MAX_SHORT_SHARE = 30.0
 RESTATEMENT_MAX_WORDS = 6
 RESTATEMENT_WINDOW = 2
 # Three sentences in a row sharing a content word in their first three words read as a template.
@@ -425,6 +427,12 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
     lengths = [len(s.text.split()) for s in prose]
     mean = statistics.mean(lengths) if lengths else 0.0
     short_share = sum(l <= 5 for l in lengths) / len(lengths) * 100 if lengths else 0.0
+    # Uniformly short sentences read as AI too: the 70.5% benchmark averaged 7.4 words, while the
+    # texts that scored 2.9-13.9% averaged 8.2-10.1 words with 15-28% short sentences.
+    if len(lengths) >= 10 and (mean < MIN_MEAN_WORDS or short_share > MAX_SHORT_SHARE):
+        add('WARN', 'staccato', f'mean sentence length {mean:.1f} words, {short_share:.0f}% short '
+            f'(keep the mean at {MIN_MEAN_WORDS:g}+ and short sentences at {MAX_SHORT_SHARE:g}% or less); '
+            'merge choppy sentences into fuller ones')
     if len(lengths) >= 10 and short_share < min_short:
         add('WARN', 'short-sentences', f'only {short_share:.1f}% of sentences have 5 words or fewer '
             f'(minimum {min_short:g}%); lead with a claim\'s core, never a split-off modifier')
@@ -516,7 +524,7 @@ def _read(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.7.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.8.0)')
     parser.add_argument('source', help='Original text file')
     parser.add_argument('draft', nargs='?', help='Rewritten draft (omit to print the fact ledger)')
     parser.add_argument('--facts', help='Author-supplied fact sheet')
