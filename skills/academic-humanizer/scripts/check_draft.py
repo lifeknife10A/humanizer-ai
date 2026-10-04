@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 2 Draft Checker (v7.6.0)
+Academic Humanizer: Phase 2 Draft Checker (v7.6.1)
 
 Compares a rewritten draft against its source text and an optional
 author-supplied fact sheet. It reports problems; it never rewrites text.
@@ -245,7 +245,8 @@ def segment(text):
     paragraphs = [p.strip() for p in re.split(r'\n\s*\n', text) if p.strip()]
     for p_idx, para in enumerate(paragraphs, 1):
         flat = ' '.join(para.split())
-        if '\n' not in para and len(flat.split()) <= 30 and not re.search(r'[.?!]["\u201d)\]]?$', flat):
+        # A one-line paragraph ending in ':' introduces a list; it is a sentence, not a heading.
+        if ('\n' not in para and len(flat.split()) <= 30 and not re.search(r'[.?!:]["\u201d)\]]?$', flat)):
             sentences.append(Sentence(p_idx, 1, flat, True))
             continue
         s_idx = 0
@@ -515,7 +516,7 @@ def _read(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.6.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.6.1)')
     parser.add_argument('source', help='Original text file')
     parser.add_argument('draft', nargs='?', help='Rewritten draft (omit to print the fact ledger)')
     parser.add_argument('--facts', help='Author-supplied fact sheet')

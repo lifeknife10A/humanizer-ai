@@ -2,7 +2,7 @@
 name: academic-humanizer
 description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
 metadata:
-  version: "7.6.0"
+  version: "7.6.1"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.6.0)
+# Academic Humanizer (v7.6.1)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 

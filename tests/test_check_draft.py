@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 2 Draft Checker (v7.6.0)
+Unit Test Suite for the Phase 2 Draft Checker (v7.6.1)
 Validates fact extraction, fact-sheet enforcement, and style warnings.
 """
 
@@ -95,6 +95,10 @@ class TestFactExtraction(unittest.TestCase):
         self.assertNotIn('colon', found)
         self.assertNotIn('parallel', found)
         self.assertNotIn('openings', found)
+
+    def test_list_intro_line_is_not_a_heading(self):
+        units = segment("2. Methods\n\nModern architectures process datasets to minimize errors:\n\n- Item: Text here.")
+        self.assertEqual([u.heading for u in units], [True, False, False])
 
     def test_unpunctuated_single_line_is_heading(self):
         sentences = segment("Extended Abstract: A Title\n\nBody text here.")

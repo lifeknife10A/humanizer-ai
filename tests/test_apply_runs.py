@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 4 Splicer (v7.6.0)
+Unit Test Suite for the Phase 4 Splicer (v7.6.1)
 """
 
 import os

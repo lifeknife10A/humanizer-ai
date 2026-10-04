@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 4 Splicer (v7.6.0)
+Academic Humanizer: Phase 4 Splicer (v7.6.1)
 
 Splices rewritten runs back into a draft. Only the text of each run's
 ORIGINAL block is replaced. Every other character of the draft is copied
@@ -245,7 +245,7 @@ def format_review(inside, outside, general, copied, hedges=(), meaning=((), ()),
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.6.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.6.1)')
     parser.add_argument('draft', help='The draft that was scanned')
     parser.add_argument('runs', help='Runs file with REWRITE slots filled in')
     parser.add_argument('-o', '--output', required=True, help='Where to write the new draft')
