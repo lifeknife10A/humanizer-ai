@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 2 Draft Checker (v6.3.1)
+Academic Humanizer: Phase 2 Draft Checker (v6.4.0)
 
 Compares a rewritten draft against its source text and an optional
 author-supplied fact sheet. It reports problems; it never rewrites text.
@@ -21,6 +21,7 @@ Fact checks (WARN):
 Style checks (WARN): sentences over --max-words, semicolons, reveal colons, em dashes,
 stock AI phrases, mid-sentence ", however,", participial tails, three-item
 lists, duplicate sentences, runs of sentences opening with the same word,
+restatement padding, three sentences in a row sharing an opening frame,
 too few short sentences (below --min-short), and overused add-ons
 ("C too.", "C as well.", "also", "alongside", "along with", "together with").
 
@@ -107,6 +108,12 @@ DROP_STOPWORDS = set(
 MIN_DROP_WORDS = 3
 MIN_DROP_SHARE = 0.3
 NEAR_DUPLICATE = 0.75
+# A short sentence whose content words all appear within two sentences of it adds nothing.
+RESTATEMENT_MAX_WORDS = 6
+RESTATEMENT_WINDOW = 2
+# Three sentences in a row sharing a content word in their first three words read as a template.
+FRAME_WORDS = 3
+FRAME_STOPWORDS = DROP_STOPWORDS | set('the a an of in on to and or for is are was were it its our we this by as at be'.split())
 REVEAL_COLON = re.compile(r':\s')
 EM_DASH = re.compile(r'\u2014|\s--\s')
 # "(1)", "(b)", "(iv)" mark list items; they aren't facts.
@@ -347,6 +354,26 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
         add('WARN', 'add-on', f'"also"/"alongside"/"along with"/"together with" appear in '
             f'{len(connector_sentences)} of {len(prose)} sentences; vary how items are connected')
 
+    prose_stems = [_stems(s.text) for s in prose]
+    for i, s in enumerate(prose):
+        if len(s.text.split()) <= RESTATEMENT_MAX_WORDS and len(prose_stems[i]) >= 2:
+            nearby = set().union(*(prose_stems[j] for j in range(max(0, i - RESTATEMENT_WINDOW),
+                                                                  min(len(prose), i + RESTATEMENT_WINDOW + 1)) if j != i))
+            if prose_stems[i] <= nearby:
+                add('WARN', 'restatement', 'only repeats words from the sentences around it; '
+                    'delete it or make it state something new from the source', s)
+
+    heads = [{w.lower() for w in re.findall(r'[A-Za-z-]+', s.text)[:FRAME_WORDS]} - FRAME_STOPWORDS for s in prose]
+    i = 0
+    while i + 2 < len(prose):
+        shared = heads[i] & heads[i + 1] & heads[i + 2]
+        if shared:
+            add('WARN', 'parallel', f'three sentences in a row open on "{sorted(shared)[0]}"; '
+                'change the shape of at least one (S5)', prose[i + 2])
+            i += 3
+        else:
+            i += 1
+
     lengths = [len(s.text.split()) for s in prose]
     mean = statistics.mean(lengths) if lengths else 0.0
     short_share = sum(l <= 5 for l in lengths) / len(lengths) * 100 if lengths else 0.0
@@ -441,7 +468,7 @@ def _read(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v6.3.1)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v6.4.0)')
     parser.add_argument('source', help='Original text file')
     parser.add_argument('draft', nargs='?', help='Rewritten draft (omit to print the fact ledger)')
     parser.add_argument('--facts', help='Author-supplied fact sheet')

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 2 Draft Checker (v6.3.1)
+Unit Test Suite for the Phase 2 Draft Checker (v6.4.0)
 Validates fact extraction, fact-sheet enforcement, and style warnings.
 """
 
@@ -197,6 +197,24 @@ class TestStyleChecks(unittest.TestCase):
         draft = ("Adversarial attacks on language models operate at the semantic level. Pixels differ. "
                  "In contrast, adversarial attacks on language models operate at the semantic level.")
         self.assertIn('duplicate', kinds(check(draft, draft)))
+
+    def test_restatement_padding_warns(self):
+        draft = ("We further argue that robust models will require fundamental advances in interpretability. "
+                 "Robustness requires fundamental advances. Researchers need new training methods.")
+        self.assertIn('restatement', kinds(check(draft, draft)))
+
+    def test_claim_core_is_not_restatement(self):
+        draft = ("Baseline interfacial impedance escalated rapidly. Over the first fifty cycles, "
+                 "area-specific resistance rose by 312% in unengineered cells.")
+        self.assertNotIn('restatement', kinds(check(draft, draft)))
+
+    def test_parallel_frames_warn(self):
+        draft = ("Syntactic attacks manipulate linguistic structure. Semantic attacks exploit world knowledge. "
+                 "Jailbreak attacks circumvent safety mechanisms. Results vary widely.")
+        self.assertIn('parallel', kinds(check(draft, draft)))
+        varied = ("Syntactic attacks manipulate linguistic structure. World knowledge gaps invite semantic attacks. "
+                  "Jailbreak attacks circumvent safety mechanisms. Results vary widely.")
+        self.assertNotIn('parallel', kinds(check(varied, varied)))
 
     def test_prepositional_comma_is_not_a_tail(self):
         draft = "Stack pressure stayed steady across all tests, during cycling and rest."

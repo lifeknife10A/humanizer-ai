@@ -2,7 +2,7 @@
 name: academic-humanizer
 description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Use when asked to humanize, de-AI, or rewrite academic text."
 metadata:
-  version: "6.3.1"
+  version: "6.4.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v6.3.1)
+# Academic Humanizer (v6.4.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -62,6 +62,8 @@ If no fact sheet was given, don't stop to ask for one. Work from the source alon
    - `retention` WARN (too long): cut filler (see H5), define abbreviations for long repeated terms, and merge fragments you over-split. If the extra length comes from fact-sheet detail (the draft minus the words those details added is within 110%), leave it and report it so the author can decide against any word limit.
    - `short-sentences` WARN: lead with a claim's core in 3–5 words and move its details to the next sentence (see S2). If no claim is left that splits naturally, stop and report the share; never split off a modifier to reach the number.
    - `add-on` WARN: work the item in another way (see S5) instead of tacking it on with "too", "as well", or "also".
+   - `restatement` WARN: the short sentence only repeats its neighbours ("Robustness requires fundamental advances." right after "achieving robust LLMs will require fundamental advances"). Delete it; never pad to reach the short-sentence share.
+   - `parallel` WARN: three sentences in a row open the same way ("Syntactic attacks manipulate… Semantic attacks exploit… Jailbreak attacks circumvent…"). Change the shape of at least one (S5).
    - `hedge` WARN: the quoted source sentence has a hedge ("may", "often", "suggesting") your draft lost. Put it back in the matching draft sentence.
    - `modal` WARN: use the source's modal; "should" stays "should", never "must".
    - `possible-drop` WARN: most words of the quoted source sentence are gone from the draft. Find where its content went; if it was dropped, restore it.
@@ -108,6 +110,8 @@ Apply these within the hard constraints. When a style rule and a hard constraint
   - Give one item the main clause and the others a phrase ("Microscopic voids form during cycling, accompanied by contact loss and dendrite growth."). Don't imply an order or a cause the source doesn't state.
   - Announce and walk through ("Three strategies were tested. The first deposited..."), only when the source states the count (H1).
   - Give two items one sentence and the third its own sentence with its own verb and angle.
+
+  Splitting a list into one sentence per item is not enough if every sentence has the same shape ("Syntactic attacks manipulate… Semantic attacks exploit… Jailbreak attacks circumvent…"). Give at least one item a different structure: a fronted phrase, a relative clause, or a different subject.
 
   Never end the split-off item with "too", "as well", or "alongside them", and don't lean on "also". Swapping in "along with", "together with", or "alongside" everywhere just moves the pattern. The checker warns when more than two sentences end with an add-on or when these connectors are overused.
 - **S6. Punctuation.** No semicolons. No reveal colons ("The reason is clear: ..."). No em-dash asides ("robustness—specifically, ..."); make the aside its own sentence or part of the main clause. Colons in titles, ratios, and times are fine.
