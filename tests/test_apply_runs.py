@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 4 Splicer (v7.4.0)
+Unit Test Suite for the Phase 4 Splicer (v7.5.0)
 """
 
 import os
@@ -86,6 +86,14 @@ class TestApplyRuns(unittest.TestCase):
         runs = [(1, "It requires not only defensive measures but also understanding.",
                  "It requires more than defensive measures. It requires understanding.")]
         self.assertEqual(run_meaning_changes(runs)[0], [])
+
+    def test_broken_enumeration_blocks(self):
+        from apply_runs import enumeration_changes
+        before = "First, heads fail. Second, biases leak. Third, filters miss."
+        after = "Heads fail. Second, biases leak. Third, filters miss."
+        self.assertEqual(enumeration_changes(before, after), ['paragraph 1: "second" is left without "first"'])
+        self.assertEqual(enumeration_changes(before, before), [])
+        self.assertEqual(enumeration_changes(before, "Heads fail first. Next come biases. Third, filters miss."), [])
 
     def test_edited_original_is_rejected(self):
         runs = [(1, "This sentence is not in the draft.", "Replacement.")]

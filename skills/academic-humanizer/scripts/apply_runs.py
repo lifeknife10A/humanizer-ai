@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 4 Splicer (v7.4.0)
+Academic Humanizer: Phase 4 Splicer (v7.5.0)
 
 Splices rewritten runs back into a draft. Only the text of each run's
 ORIGINAL block is replaced. Every other character of the draft is copied
@@ -119,6 +119,28 @@ def hedge_changes(before, after):
     return lost
 
 
+ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
+
+
+def broken_enumerations(text):
+    """Paragraphs where an ordinal appears without the one before it ("Third, ..." with no "second")."""
+    broken = []
+    for p, para in enumerate([p for p in re.split(r'\n\s*\n', text) if p.strip()], 1):
+        present = {o for o in ORDINALS if re.search(rf'\b{o}\b', para, re.IGNORECASE)}
+        has_next = bool(re.search(r'\bnext\b', para, re.IGNORECASE))  # "Next come..." stands in for an ordinal
+        for k, o in enumerate(ORDINALS[1:], 1):
+            if o in present and ORDINALS[k - 1] not in present and not has_next:
+                broken.append((p, o, ORDINALS[k - 1]))
+    return broken
+
+
+def enumeration_changes(before, after):
+    """Enumeration breaks the splice introduced."""
+    old = set(broken_enumerations(before))
+    return [f'paragraph {p}: "{o}" is left without "{prev}"' for p, o, prev in broken_enumerations(after)
+            if (p, o, prev) not in old]
+
+
 def run_meaning_changes(runs):
     """Per run: hedges or limiters the rewrite lost (blocking) and content words it dropped (to check)."""
     lost, dropped = [], []
@@ -168,7 +190,7 @@ def _minor(finding):
     return finding['kind'] == 'long-sentence' and len(finding['text'].split()) <= LONG_SENTENCE_SLACK
 
 
-def format_review(inside, outside, general, copied, hedges=(), meaning=((), ())):
+def format_review(inside, outside, general, copied, hedges=(), meaning=((), ()), enumerations=()):
     lines = ['=== PHASE 4 REVIEW ===']
     if copied:
         lines.append(f'Highlighted sentences barely changed (rewrite keeps {BARELY_CHANGED:.0%}+ of their words; '
@@ -179,6 +201,10 @@ def format_review(inside, outside, general, copied, hedges=(), meaning=((), ()))
         lines.append('Hedges or limiting words lost in your rewrites (restore them; dropping "some", '
                      '"strongly", "may" or "only" overclaims):')
         lines.extend(f'  {h}' for h in list(lost) + list(hedges))
+    if enumerations:
+        lines.append('Enumerations broken by your rewrites (a later ordinal remains outside the run; '
+                     'keep "first"/"second" in the rewrite):')
+        lines.extend(f'  {e}' for e in enumerations)
     if dropped:
         lines.append('Word stems in a run\'s ORIGINAL that its rewrite no longer has. Synonyms are fine; '
                      'make sure no claim, item or qualifier went missing:')
@@ -197,13 +223,14 @@ def format_review(inside, outside, general, copied, hedges=(), meaning=((), ()))
         lines.append(f'  {f["level"]}  {f["kind"]}: {f["message"]}{where}')
     lines.append(f'Warnings in sentences outside the runs: {len(outside)}. Those sentences already passed the '
                  'detector; leave them unchanged.')
-    ok = not copied and not hedges and not lost and not blocking and not any(f['level'] == 'FAIL' for f in general)
+    ok = (not copied and not hedges and not lost and not enumerations and not blocking
+          and not any(f['level'] == 'FAIL' for f in general))
     lines.append('PHASE 4 RESULT: ' + ('READY TO SCAN' if ok else 'REVISE runs.txt AND RUN AGAIN'))
     return '\n'.join(lines)
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.4.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.5.0)')
     parser.add_argument('draft', help='The draft that was scanned')
     parser.add_argument('runs', help='Runs file with REWRITE slots filled in')
     parser.add_argument('-o', '--output', required=True, help='Where to write the new draft')
@@ -242,7 +269,7 @@ def main(argv=None):
     print(format_report(result))
     print()
     print(format_review(*review_runs(runs, result), hedges=hedge_changes(draft, new_draft),
-                        meaning=run_meaning_changes(runs)))
+                        meaning=run_meaning_changes(runs), enumerations=enumeration_changes(draft, new_draft)))
     return 0 if result['passed'] else 1
 
 

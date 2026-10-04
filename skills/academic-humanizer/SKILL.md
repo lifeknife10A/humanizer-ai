@@ -2,7 +2,7 @@
 name: academic-humanizer
 description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
 metadata:
-  version: "7.4.0"
+  version: "7.5.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.4.0)
+# Academic Humanizer (v7.5.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -117,6 +117,7 @@ Offer this phase at delivery. Run it when the user comes back with a scan. **Nev
    Drop `--facts facts.md` when there's no fact sheet. It replaces only the runs, copies everything else unchanged, and checks the result against the original source, never the previous draft. Its PHASE 4 REVIEW sorts the findings for you:
    - **Highlighted sentences barely changed:** your rewrite kept 80% or more of the sentence's words. Restructure it. In rounds that lowered the score, rewrites kept about half of each highlighted sentence's words and never more than 79%; near-copies get flagged again.
    - **Hedges or limiting words lost in your rewrites:** you dropped a "may", "often", "suggests", "some", "strongly" or "only", or added a "must". Restore it. "Some larger models fare worse" is not "Larger models fare worse."
+   - **Enumerations broken by your rewrites:** a sentence outside the run still says "Third, …" but your rewrite removed "First" or "Second". Keep the ordinal in the rewrite.
    - **Word stems a run's rewrite no longer has:** not blocking, but read the list. Synonyms are fine; a missing item, claim or qualifier is not.
    - **Warnings inside your rewrites:** fix every one in `runs.txt`. These are problems you introduced.
    - **Whole-document findings:** fix any failure, and check each hedge or drop warning.
