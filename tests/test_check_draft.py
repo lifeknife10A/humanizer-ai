@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 2 Draft Checker (v6.3.0)
+Unit Test Suite for the Phase 2 Draft Checker (v6.3.1)
 Validates fact extraction, fact-sheet enforcement, and style warnings.
 """
 
@@ -76,6 +76,10 @@ class TestFactExtraction(unittest.TestCase):
         sentences = segment("Smith et al. (2021) measured it. See Fig. 2 for details. Done.")
         self.assertEqual([s.text for s in sentences],
                          ["Smith et al. (2021) measured it.", "See Fig. 2 for details.", "Done."])
+
+    def test_closing_quote_ends_sentence(self):
+        sentences = segment('We term this "adversarial fragility." Models trained on it often fail.')
+        self.assertEqual(len(sentences), 2)
 
     def test_unpunctuated_single_line_is_heading(self):
         sentences = segment("Extended Abstract: A Title\n\nBody text here.")
