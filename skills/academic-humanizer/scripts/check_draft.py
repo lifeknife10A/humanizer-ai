@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 2 Draft Checker (v6.2.1)
+Academic Humanizer: Phase 2 Draft Checker (v6.3.0)
 
 Compares a rewritten draft against its source text and an optional
 author-supplied fact sheet. It reports problems; it never rewrites text.
@@ -14,6 +14,9 @@ Fact checks (WARN):
   - acronyms or formulas in the draft that are in neither the source nor the
     fact sheet, unless defined in the draft as "full term (ACRONYM)"
   - word retention above --max-retention
+  - fewer hedges of a kind (possibility, frequency, evidential) than the source
+  - more "must" than the source
+  - source sentences whose content words are largely missing (possible drops)
 
 Style checks (WARN): sentences over --max-words, semicolons, reveal colons, em dashes,
 stock AI phrases, mid-sentence ", however,", participial tails, three-item
@@ -88,6 +91,22 @@ NOT_PARTICIPLES = {
 }
 TRIAD = re.compile(r',\s[^,;:.]{1,50},\s(?:and|or)\s')
 MID_HOWEVER = re.compile(r',\s*however\s*,', re.IGNORECASE)
+# Hedges grouped by kind. A draft with fewer of a kind than the source has
+# probably turned a tentative finding into a firm one.
+HEDGE_CLASSES = {
+    'possibility': r'\b(?:may|might|could|possibly|potentially|perhaps)\b',
+    'frequency': r'\b(?:often|frequently|occasional(?:ly)?|sometimes|typically|usually|generally|commonly|rarely)\b',
+    'evidential': (r'\b(?:suggest(?:s|ed|ing)?|indicat(?:e|es|ed|ing)|appear(?:s|ed)?|seem(?:s|ed)?'
+                   r'|likely|unlikely|impl(?:y|ies|ied|ying)|points? to)\b'),
+}
+MUST = re.compile(r'\bmust\b', re.IGNORECASE)
+DROP_STOPWORDS = set(
+    'that this these those with from into have been their there which while where when what about across '
+    'through under over than then they them also such some more most only very will would should could '
+    'being were does upon onto each other both well much many'.split())
+MIN_DROP_WORDS = 3
+MIN_DROP_SHARE = 0.3
+NEAR_DUPLICATE = 0.75
 REVEAL_COLON = re.compile(r':\s')
 EM_DASH = re.compile(r'\u2014|\s--\s')
 # "(1)", "(b)", "(iv)" mark list items; they aren't facts.
@@ -205,6 +224,15 @@ def _text_numbers(text):
     return set().union(*(extract_numbers(s.text) for s in segment(text)))
 
 
+def _stems(text):
+    """Crude stems (first five letters of content words), enough to tell reworded from removed."""
+    return {w[:5] for w in re.findall(r'[a-z]+', text.lower()) if len(w) >= 4 and w not in DROP_STOPWORDS}
+
+
+def _word_set(text):
+    return set(re.findall(r'[a-z0-9]+', text.lower()))
+
+
 def _sort_numbers(numbers):
     return sorted(numbers, key=float)
 
@@ -250,8 +278,32 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
                 if from_facts else '; cut filler words and merge over-split fragments')
         add('WARN', 'retention', f'draft is {retention:.1f}% of source length (maximum {max_retention:g}%){note}')
 
+    for kind, pattern in HEDGE_CLASSES.items():
+        in_source = len(re.findall(pattern, source, re.IGNORECASE))
+        in_draft = len(re.findall(pattern, draft, re.IGNORECASE))
+        if in_draft < in_source:
+            for s in source_sentences:
+                m = re.search(pattern, s.text, re.IGNORECASE)
+                if m:
+                    add('WARN', 'hedge', f'{kind} hedges: source {in_source}, draft {in_draft}; '
+                        f'make sure the draft keeps "{m.group(0)}" here', s, 'source')
+    if len(MUST.findall(draft)) > len(MUST.findall(source)):
+        for s in draft_sentences:
+            if MUST.search(s.text):
+                add('WARN', 'modal', '"must" is stronger than the source; keep the source\'s modal', s)
+
+    draft_stems = _stems(draft)
+    for s in source_sentences:
+        if s.heading:
+            continue
+        stems = _stems(s.text)
+        missing = sorted(stems - draft_stems)
+        if len(missing) >= MIN_DROP_WORDS and len(missing) / len(stems) >= MIN_DROP_SHARE:
+            add('WARN', 'possible-drop', f'words from this source sentence are missing from the draft '
+                f'({", ".join(missing)}); check it was not dropped', s, 'source')
+
     prose = [s for s in draft_sentences if not s.heading]
-    seen = set()
+    seen = []
     run_word, run_length = None, 0
     for s in prose:
         words = s.text.split()
@@ -273,10 +325,11 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
         if TRIAD.search(s.text):
             add('WARN', 'triad', 'three-item list: restructure without dropping an item', s)
 
-        key = re.sub(r'[^a-z0-9 ]', '', s.text.lower())
-        if key in seen:
+        word_set = _word_set(s.text)
+        if any(word_set == w or (len(words) >= 5 and len(word_set & w) / len(word_set | w) >= NEAR_DUPLICATE)
+               for w in seen):
             add('WARN', 'duplicate', 'repeats an earlier sentence', s)
-        seen.add(key)
+        seen.append(word_set)
 
         first = re.sub(r'[^a-z]', '', words[0].lower()) if words else ''
         run_length = run_length + 1 if first == run_word else 1
@@ -324,7 +377,7 @@ def _excerpt(text, limit=110):
 
 def format_report(result):
     stats = result['stats']
-    fact_kinds = {'new-number', 'missing-number', 'new-term', 'retention'}
+    fact_kinds = {'new-number', 'missing-number', 'new-term', 'retention', 'hedge', 'modal', 'possible-drop'}
     facts = [f for f in result['findings'] if f['kind'] in fact_kinds]
     style = [f for f in result['findings'] if f['kind'] not in fact_kinds]
 
@@ -388,7 +441,7 @@ def _read(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v6.2.1)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v6.3.0)')
     parser.add_argument('source', help='Original text file')
     parser.add_argument('draft', nargs='?', help='Rewritten draft (omit to print the fact ledger)')
     parser.add_argument('--facts', help='Author-supplied fact sheet')

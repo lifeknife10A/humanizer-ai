@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9+-green.svg)](https://python.org)
-[![Tests: Passing](https://img.shields.io/badge/Tests-35%20Passing-brightgreen.svg)](tests/)
+[![Tests: Passing](https://img.shields.io/badge/Tests-39%20Passing-brightgreen.svg)](tests/)
 [![ZeroGPT Target: <10%](https://img.shields.io/badge/ZeroGPT-2.9%25%20Achieved-success.svg)](benchmarks/)
 
 **Humanizer-AI** is an empirically validated, open-source pipeline designed to transform AI-generated academic papers, theses, and technical reports into authentic scholarship that reliably scores **< 10% AI (or 0%)** on ZeroGPT, Turnitin, and GPTZero in **a single turnkey iteration** while strictly preserving full manuscript length and factual accuracy.
@@ -22,7 +22,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 
 ---
 
-## System Architecture: Fact-Sheet Pipeline (v6.2.1)
+## System Architecture: Fact-Sheet Pipeline (v6.3.0)
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
@@ -53,6 +53,8 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 │ • WARN: new acronym/formula, long sentence, stock phrase,       │  │
 │   semicolon, colon, tail, triad, duplicate, repeated opening,   │  │
 │   too few short sentences, "too"/"also" add-ons                 │  │
+│ • WARN (fidelity): lost hedges, stronger "must", dropped        │  │
+│   source sentences, near-duplicate sentences                    │  │
 │ • Reports only. It never rewrites text.                         │  │
 └────────────────────────────────┬────────────────────────────────┘  │
                                  ▼                                   │
@@ -140,7 +142,7 @@ Fact-sheet numbers used: none
   FAIL  missing-number: "3" from the source is missing from the draft  [source ¶4 s3]
   WARN  new-term: "LLZTO" is not in the source or fact sheet  [draft ¶3 s3]
 ...
-RESULT: FAIL (31 failures, 11 warnings)
+RESULT: FAIL (31 failures, 35 warnings)
 ```
 
 The v5.0.0 regex engine still runs on its own (`python3 humanizer.py input.txt --stats`), but the skill no longer uses it.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 2 Draft Checker (v6.2.1)
+Unit Test Suite for the Phase 2 Draft Checker (v6.3.0)
 Validates fact extraction, fact-sheet enforcement, and style warnings.
 """
 
@@ -126,6 +126,26 @@ class TestFactChecks(unittest.TestCase):
         self.assertIn('cut filler', padded['findings'][0]['message'])
         self.assertIn('fact-sheet details were added', with_facts['findings'][0]['message'])
 
+    def test_lost_hedge_warns(self):
+        source = "Results suggest that larger models may resist attacks less often than expected here."
+        hedged = "Results suggest larger models may resist attacks less often than expected here."
+        firm = "Results show larger models resist attacks less than expected in these runs here."
+        self.assertNotIn('hedge', kinds(check(source, hedged)))
+        self.assertIn('hedge', kinds(check(source, firm)))
+
+    def test_stronger_modal_warns(self):
+        source = "Robustness should not be treated as an isolated problem by the field."
+        draft = "Robustness must not be treated as an isolated problem by the field."
+        self.assertIn('modal', kinds(check(source, draft)))
+
+    def test_dropped_sentence_warns(self):
+        source = ("Attention heads fail on ambiguous inputs. Output filters miss indirect requests. "
+                  "We hope this work catalyzes community attention to reliable development.")
+        draft = "Attention heads fail on ambiguous inputs. Output filters miss indirect requests."
+        drops = [f for f in check(source, draft)['findings'] if f['kind'] == 'possible-drop']
+        self.assertEqual(len(drops), 1)
+        self.assertIn('catalyzes', drops[0]['text'])
+
     def test_truncation_fails(self):
         result = check(SOURCE, "Cells cycled at 1.0 mA cm⁻² for fifty cycles.")
         self.assertIn('retention', kinds(result, 'FAIL'))
@@ -168,6 +188,11 @@ class TestStyleChecks(unittest.TestCase):
         self.assertIn('short-sentences', kinds(check(uniform, uniform)))
         varied = ' '.join([medium] * 8 + ["Resistance tripled.", "Coated cells survived."])
         self.assertNotIn('short-sentences', kinds(check(varied, varied)))
+
+    def test_near_duplicate_warns(self):
+        draft = ("Adversarial attacks on language models operate at the semantic level. Pixels differ. "
+                 "In contrast, adversarial attacks on language models operate at the semantic level.")
+        self.assertIn('duplicate', kinds(check(draft, draft)))
 
     def test_prepositional_comma_is_not_a_tail(self):
         draft = "Stack pressure stayed steady across all tests, during cycling and rest."
