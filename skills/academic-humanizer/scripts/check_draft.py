@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 2 Draft Checker (v6.2.0)
+Academic Humanizer: Phase 2 Draft Checker (v6.2.1)
 
 Compares a rewritten draft against its source text and an optional
 author-supplied fact sheet. It reports problems; it never rewrites text.
@@ -15,7 +15,7 @@ Fact checks (WARN):
     fact sheet, unless defined in the draft as "full term (ACRONYM)"
   - word retention above --max-retention
 
-Style checks (WARN): sentences over --max-words, semicolons, reveal colons,
+Style checks (WARN): sentences over --max-words, semicolons, reveal colons, em dashes,
 stock AI phrases, mid-sentence ", however,", participial tails, three-item
 lists, duplicate sentences, runs of sentences opening with the same word,
 too few short sentences (below --min-short), and overused add-ons
@@ -89,6 +89,9 @@ NOT_PARTICIPLES = {
 TRIAD = re.compile(r',\s[^,;:.]{1,50},\s(?:and|or)\s')
 MID_HOWEVER = re.compile(r',\s*however\s*,', re.IGNORECASE)
 REVEAL_COLON = re.compile(r':\s')
+EM_DASH = re.compile(r'\u2014|\s--\s')
+# "(1)", "(b)", "(iv)" mark list items; they aren't facts.
+LIST_MARKER = re.compile(r'\(\s*(?:\d{1,2}|[a-z]|[ivx]{1,4})\s*\)')
 # "A and B. C too." is what splitting a three-item list tends to produce.
 ADD_ON_ENDING = re.compile(r'\b(?:too|as well|alongside (?:it|them)|the same (?:effect|treatment))[.!?]$', re.IGNORECASE)
 ADD_ON_CONNECTOR = re.compile(r'\b(?:also|alongside|along with|together with)\b', re.IGNORECASE)
@@ -138,6 +141,7 @@ def _word_numbers(text):
 
 def extract_numbers(text):
     """Returns the set of numbers in text, normalized so '3,860' == '3860' and 'fifty' == '50'."""
+    text = LIST_MARKER.sub(' ', text)
     numbers = {_canonical(m.group(1), m.group(2)) for m in DIGIT_NUMBER.finditer(text)}
     numbers.update(_word_numbers(text))
     return numbers
@@ -257,6 +261,8 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
             add('WARN', 'semicolon', 'split into separate sentences', s)
         if REVEAL_COLON.search(s.text):
             add('WARN', 'colon', 'end the sentence instead of using a reveal colon', s)
+        if EM_DASH.search(s.text):
+            add('WARN', 'em-dash', 'make the aside its own sentence or part of the main clause', s)
         for m in STOCK_PATTERN.finditer(s.text):
             add('WARN', 'stock-phrase', f'"{m.group(1)}"', s)
         if MID_HOWEVER.search(s.text):
@@ -382,7 +388,7 @@ def _read(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v6.2.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v6.2.1)')
     parser.add_argument('source', help='Original text file')
     parser.add_argument('draft', nargs='?', help='Rewritten draft (omit to print the fact ledger)')
     parser.add_argument('--facts', help='Author-supplied fact sheet')

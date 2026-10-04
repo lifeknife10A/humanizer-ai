@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 2 Draft Checker (v6.2.0)
+Unit Test Suite for the Phase 2 Draft Checker (v6.2.1)
 Validates fact extraction, fact-sheet enforcement, and style warnings.
 """
 
@@ -46,6 +46,10 @@ class TestFactExtraction(unittest.TestCase):
     def test_formula_and_unit_digits_ignored(self):
         text = "Li6.4La3Zr1.4Ta0.6O12 and Li₂CO₃ in mA cm-2 with K_IC in MPa m^{1/2} and cm⁻²."
         self.assertEqual(extract_numbers(text), set())
+
+    def test_list_markers_are_not_numbers(self):
+        text = "Four kinds: (1) syntactic, (2) semantic, (iii) jailbreak, and (b) multi-turn attacks at 87%."
+        self.assertEqual(extract_numbers(text), {'4', '87'})
 
     def test_lone_one_is_not_a_quantity(self):
         self.assertEqual(extract_numbers("One of the cells failed."), set())
@@ -136,10 +140,11 @@ class TestStyleChecks(unittest.TestCase):
             "The pellets, however, cracked under load. "
             "The active boundary receded quickly, cutting contact area by half. "
             "We measured roughness, fracture, and conductivity. "
-            "During cycling, voids grew. During cycling, voids grew."
+            "During cycling, voids grew. During cycling, voids grew. "
+            "Robustness matters—specifically, against crafted inputs."
         )
         found = kinds(check(draft, draft))
-        for kind in ('stock-phrase', 'semicolon', 'colon', 'however',
+        for kind in ('stock-phrase', 'semicolon', 'colon', 'em-dash', 'however',
                      'participial-tail', 'triad', 'duplicate', 'openings'):
             self.assertIn(kind, found)
 

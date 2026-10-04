@@ -2,7 +2,7 @@
 name: academic-humanizer
 description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Use when asked to humanize, de-AI, or rewrite academic text."
 metadata:
-  version: "6.2.0"
+  version: "6.2.1"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v6.2.0)
+# Academic Humanizer (v6.2.1)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -107,7 +107,8 @@ Apply these within the hard constraints. When a style rule and a hard constraint
   - Give two items one sentence and the third its own sentence with its own verb and angle.
 
   Never end the split-off item with "too", "as well", or "alongside them", and don't lean on "also". Swapping in "along with", "together with", or "alongside" everywhere just moves the pattern. The checker warns when more than two sentences end with an add-on or when these connectors are overused.
-- **S6. Punctuation.** No semicolons. No reveal colons ("The reason is clear: ..."). Colons in titles, ratios, and times are fine.
+- **S6. Punctuation.** No semicolons. No reveal colons ("The reason is clear: ..."). No em-dash asides ("robustness—specifically, ..."); make the aside its own sentence or part of the main clause. Colons in titles, ratios, and times are fine.
+- **S6a. Numbered lists.** Turn inline enumerations ("(1) ..., (2) ..., (3) ...") into prose that keeps every item (H4), using the S5 methods. The markers themselves aren't facts, so the checker doesn't require them.
 - **S7. Tails and "however".** Split ", cutting X..." into ". This cut X...". Rewrite "X, however, Y" as "Yet X Y" or as two sentences.
 - **S8. Stock phrasing.** Cut: Furthermore, Moreover, Additionally, Notably, Ultimately, In conclusion, In summary, In short, It is important/crucial to note, pivotal, vital role, integral role, tapestry, delve into, testament, paramount, transformative potential, the landscape of, cornerstone, synergy, holistic, and "To address these challenges, we...". When the phrase carries meaning, keep the meaning in plain words: "the transformative potential of X" becomes "how X could transform...".
 - **S9. Conclusions.** Rewrite mandates ("must deploy", "is paramount for", "is vital to", "hinges on") as plain recommendations ("should", "we recommend"). These are recommendations, not findings, so H3's hedging rule doesn't apply to them. Don't turn a stated dependency ("success depends on X") into a recommendation, and don't add a mechanism the source doesn't describe.
