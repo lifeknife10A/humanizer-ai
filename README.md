@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9+-green.svg)](https://python.org)
-[![Tests: Passing](https://img.shields.io/badge/Tests-33%20Passing-brightgreen.svg)](tests/)
+[![Tests: Passing](https://img.shields.io/badge/Tests-34%20Passing-brightgreen.svg)](tests/)
 [![ZeroGPT Target: <10%](https://img.shields.io/badge/ZeroGPT-2.9%25%20Achieved-success.svg)](benchmarks/)
 
 **Humanizer-AI** is an empirically validated, open-source pipeline designed to transform AI-generated academic papers, theses, and technical reports into authentic scholarship that reliably scores **< 10% AI (or 0%)** on ZeroGPT, Turnitin, and GPTZero in **a single turnkey iteration** while strictly preserving full manuscript length and factual accuracy.
@@ -22,7 +22,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 
 ---
 
-## System Architecture: Fact-Sheet Pipeline (v6.1.0)
+## System Architecture: Fact-Sheet Pipeline (v6.2.0)
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐

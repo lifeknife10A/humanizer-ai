@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 2 Draft Checker (v6.1.0)
+Unit Test Suite for the Phase 2 Draft Checker (v6.2.0)
 Validates fact extraction, fact-sheet enforcement, and style warnings.
 """
 
@@ -149,6 +149,13 @@ class TestStyleChecks(unittest.TestCase):
                  "Resistance rises with cycling. Capacity fades alongside them.")
         self.assertEqual(kinds(check(draft, draft)).count('add-on'), 3)
         self.assertNotIn('add-on', kinds(check(draft, draft.replace(' as well.', '.'))))
+
+    def test_connector_swaps_still_count_as_add_ons(self):
+        sentences = [f"Cell {w} cracked, alongside the separator." for w in
+                     ('alpha', 'beta', 'gamma', 'delta')]
+        draft = ' '.join(sentences + ["Resistance rose during cycling.", "Contact was lost at the interface."])
+        found = [f['message'] for f in check(draft, draft)['findings'] if f['kind'] == 'add-on']
+        self.assertTrue(any('alongside' in m for m in found))
 
     def test_short_sentence_share(self):
         medium = "Interfacial resistance rose steadily across the first fifty cycles of testing."

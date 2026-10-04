@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 2 Draft Checker (v6.1.0)
+Academic Humanizer: Phase 2 Draft Checker (v6.2.0)
 
 Compares a rewritten draft against its source text and an optional
 author-supplied fact sheet. It reports problems; it never rewrites text.
@@ -18,8 +18,8 @@ Fact checks (WARN):
 Style checks (WARN): sentences over --max-words, semicolons, reveal colons,
 stock AI phrases, mid-sentence ", however,", participial tails, three-item
 lists, duplicate sentences, runs of sentences opening with the same word,
-too few short sentences (below --min-short), and overused add-on sentences
-("C too.", "C as well.", "also").
+too few short sentences (below --min-short), and overused add-ons
+("C too.", "C as well.", "also", "alongside", "along with", "together with").
 
 Usage:
   check_draft.py SOURCE [--facts FACTS]          print the fact ledger
@@ -91,9 +91,9 @@ MID_HOWEVER = re.compile(r',\s*however\s*,', re.IGNORECASE)
 REVEAL_COLON = re.compile(r':\s')
 # "A and B. C too." is what splitting a three-item list tends to produce.
 ADD_ON_ENDING = re.compile(r'\b(?:too|as well|alongside (?:it|them)|the same (?:effect|treatment))[.!?]$', re.IGNORECASE)
-ALSO = re.compile(r'\balso\b', re.IGNORECASE)
+ADD_ON_CONNECTOR = re.compile(r'\b(?:also|alongside|along with|together with)\b', re.IGNORECASE)
 MAX_ADD_ON_ENDINGS = 2
-MAX_ALSO_SHARE = 0.06
+MAX_CONNECTOR_SHARE = 0.06
 ACRONYM_DEFINITION = re.compile(r'\(([A-Za-z][A-Za-z-]{1,15})\)')
 ACRONYM_STOPWORDS = {'of', 'and', 'the', 'for', 'in', 'on', 'to', 'a', 'an', 'by', 'with'}
 
@@ -283,17 +283,17 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
         for s in add_on_endings:
             add('WARN', 'add-on', f'{len(add_on_endings)} sentences end in "too"/"as well"-style add-ons '
                 f'(maximum {MAX_ADD_ON_ENDINGS}); integrate the item instead', s)
-    also_sentences = [s for s in prose if ALSO.search(s.text)]
-    if len(also_sentences) > max(3, MAX_ALSO_SHARE * len(prose)):
-        add('WARN', 'add-on', f'"also" appears in {len(also_sentences)} of {len(prose)} sentences; '
-            'vary how items are connected')
+    connector_sentences = [s for s in prose if ADD_ON_CONNECTOR.search(s.text)]
+    if len(connector_sentences) > max(3, MAX_CONNECTOR_SHARE * len(prose)):
+        add('WARN', 'add-on', f'"also"/"alongside"/"along with"/"together with" appear in '
+            f'{len(connector_sentences)} of {len(prose)} sentences; vary how items are connected')
 
     lengths = [len(s.text.split()) for s in prose]
     mean = statistics.mean(lengths) if lengths else 0.0
     short_share = sum(l <= 5 for l in lengths) / len(lengths) * 100 if lengths else 0.0
     if len(lengths) >= 10 and short_share < min_short:
         add('WARN', 'short-sentences', f'only {short_share:.1f}% of sentences have 5 words or fewer '
-            f'(minimum {min_short:g}%); split a specific point into a short sentence')
+            f'(minimum {min_short:g}%); lead with a claim\'s core, never a split-off modifier')
     stats = {
         'source_words': source_words,
         'draft_words': draft_words,
@@ -382,7 +382,7 @@ def _read(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v6.1.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v6.2.0)')
     parser.add_argument('source', help='Original text file')
     parser.add_argument('draft', nargs='?', help='Rewritten draft (omit to print the fact ledger)')
     parser.add_argument('--facts', help='Author-supplied fact sheet')

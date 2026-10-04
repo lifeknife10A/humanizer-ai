@@ -2,7 +2,7 @@
 name: academic-humanizer
 description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Use when asked to humanize, de-AI, or rewrite academic text."
 metadata:
-  version: "6.1.0"
+  version: "6.2.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v6.1.0)
+# Academic Humanizer (v6.2.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -59,8 +59,8 @@ If no fact sheet was given, don't stop to ask for one. Work from the source alon
    - `missing-number` FAIL: restore the content of the source sentence the report quotes.
    - `new-term` WARN: use the source's wording unless the fact sheet gives the term. To shorten a term the source spells out, define the abbreviation at first use: "electrochemical impedance spectroscopy (EIS)".
    - `retention` FAIL (too short): unpack more sentences, or use more fact-sheet detail. If neither is possible without padding, leave the shortfall and report it.
-   - `retention` WARN (too long): cut filler (see H5), define abbreviations for long repeated terms, and merge fragments you over-split. If the extra length comes from fact-sheet detail, leave it and report it so the author can decide against any word limit.
-   - `short-sentences` WARN: split a specific point out of a longer sentence into a 3–5 word sentence ("Its evolution is unstable.").
+   - `retention` WARN (too long): cut filler (see H5), define abbreviations for long repeated terms, and merge fragments you over-split. If the extra length comes from fact-sheet detail (the draft minus the words those details added is within 110%), leave it and report it so the author can decide against any word limit.
+   - `short-sentences` WARN: lead with a claim's core in 3–5 words and move its details to the next sentence (see S2). If no claim is left that splits naturally, stop and report the share; never split off a modifier to reach the number.
    - `add-on` WARN: work the item in another way (see S5) instead of tacking it on with "too", "as well", or "also".
    - Other style WARNs: fix each one unless the fix would break a hard constraint.
 
@@ -80,11 +80,11 @@ If you can't run Python, do steps 2 and 5 by hand. List every number, acronym, a
 
 These are never traded for style.
 
-- **H1. Numbers.** Every number in the draft comes from the source or the fact sheet. Every number in the source appears in the draft, as digits or words. Counts are numbers too: don't write "two processes" or "all three" unless the source states that count.
-- **H2. Names and terms.** Add no materials, formulas, techniques, instruments, datasets, acronyms, authors, institutions, or citations that aren't in the source or fact sheet. Don't make a generic name more specific. "Lithium lanthanum zirconium tantalum oxide" doesn't become a stoichiometric formula unless the fact sheet gives that formula. Defining a standard abbreviation for a term the source spells out is fine: "lithium lanthanum zirconium tantalum oxide (LLZTO)".
-- **H3. Claims.** Add no results, mechanisms, causes, comparisons, or first-person experimental actions that the source or fact sheet doesn't state. "In our load frames, pellets cracked above 6.5 MPa" is an invented experiment if the source never mentions it. Keep purposes as purposes. Keep findings hedged exactly as strongly as the source: "may suggest" stays tentative, "confirmed" stays confirmed. You may turn the source's passive voice into "we" for work it presents as the authors' own. If the fact sheet contradicts the source, follow the fact sheet (the author wrote it) and report the conflict.
+- **H1. Numbers.** Every number in the draft comes from the source or the fact sheet. Every number in the source appears in the draft, as digits or words. Counts are numbers too: don't write "two processes" or "all three" unless the source states that count, because the checker can't tell a true count from an invented one. "Both" and ordinals ("the first", "the second") are fine when they refer to items the source lists. Don't turn a number into a multiple ("rose by 312%" is not "tripled").
+- **H2. Names and terms.** Add no materials, formulas, techniques, instruments, datasets, acronyms, authors, institutions, or citations that aren't in the source or fact sheet. Don't make a generic name more specific. "Lithium lanthanum zirconium tantalum oxide" doesn't become a stoichiometric formula unless the fact sheet gives that formula. Defining a standard abbreviation for a term the source spells out is fine: "lithium lanthanum zirconium tantalum oxide (LLZTO)". So is the standard symbol for a unit the source names ("megapascals" becomes "MPa").
+- **H3. Claims.** Add no results, mechanisms, causes, comparisons, or first-person experimental actions that the source or fact sheet doesn't state. "In our load frames, pellets cracked above 6.5 MPa" is an invented experiment if the source never mentions it. Keep purposes as purposes. Keep findings hedged exactly as strongly as the source: "may suggest" stays tentative, "confirmed" stays confirmed. You may turn the source's passive voice into "we" for work it presents as the authors' own. If the fact sheet contradicts the source or describes the same thing differently ("synthesized" vs. "densified"), follow the fact sheet (the author wrote it) and report the difference.
 - **H4. Lists.** Keep every item of every list. Restructure a list; never shorten it.
-- **H5. Length.** The draft is 95–110% of the source's word count. Unpacking adds words (repeated subjects, new sentence openings), so offset it by cutting filler. Filler is wording that carries no fact, claim, item, or hedge, such as "fundamentally", "inherently", "notoriously", "comprehensive", "significantly", "it is the case that". Cutting filler is not truncation. Never pad with field background, restatement, or invented specifics. An honest shortfall is better than padding. Fact-sheet detail may take the draft above 110%; report it instead of cutting the author's details.
+- **H5. Length.** The draft is 95–110% of the source's word count. Unpacking adds words (repeated subjects, new sentence openings), so offset it by cutting filler. Filler is wording that carries no fact, claim, item, or hedge, such as "fundamentally", "inherently", "notoriously", "comprehensive", "successfully", "it is the case that". Keep intensifiers that state size ("dramatically", "exponentially") and "significantly" when it means statistical significance. Cutting filler is not truncation. Never pad with field background, restatement, or invented specifics. An honest shortfall is better than padding. Use the fact-sheet details that make the source's statements specific; you don't have to use all of them. When a fact-sheet value makes a vague word redundant ("high-temperature" next to 1150 °C, "ultra-thin" next to 5 nm), drop the vague word. Fact-sheet detail may still take the draft above 110%; report it rather than cutting details you used.
 
 The checker enforces H1 and the length floor in H5, and flags likely H2 violations. It can't see H3 or H4, so those depend on your fidelity reread (step 4).
 
@@ -93,19 +93,24 @@ The checker enforces H1 and the length floor in H5, and flags likely H2 violatio
 Apply these within the hard constraints. When a style rule and a hard constraint conflict, the hard constraint wins.
 
 - **S1. Sentence length.** Keep sentences to 16 words or fewer. Unpack longer ones into complete sentences that keep every clause.
-- **S2. Short sentences.** About one sentence in five should have 3–5 words, placed irregularly. The checker warns below 15%. Make each one by splitting a specific point out of the content ("Resistance tripled.", "Its evolution is unstable."), never by adding a generic slogan. Don't reuse a short sentence or its wording frame ("Peak currents compound damage." then "Mechanical loads compound stress.").
+- **S2. Short sentences.** Aim for about one sentence in five with 3–5 words, placed irregularly. The checker warns below 15%. The natural way to get one is to lead with a claim's core and give its details in the next sentence: "Interfacial impedance escalated rapidly. Over the first fifty cycles at 1.0 mA cm⁻², area-specific resistance rose by 312%." Each short sentence needs its own subject and a verb that states something the source claims. Never make one by:
+  - splitting off a modifier ("Protocols should be standardized. These should be rigorous.", "Demand surged. It grew exponentially.")
+  - adding a generic slogan ("The math reflects physics.")
+  - reusing a short sentence or its wording frame ("Peak currents compound damage." then "Mechanical loads compound stress.")
+
+  If the text runs out of claims that split naturally, stop below the target and report the share.
 - **S3. Sentence openings.** Don't start three sentences in a row with the same word. Front some sentences with a prepositional or adverbial phrase drawn from the content ("At 1.0 mA cm⁻², ...", "During stripping, ...").
-- **S4. Paragraph openings.** Start each paragraph with the paper's specific problem or finding. Background sentences that are in the source are content, so keep them, but move them out of the paragraph's first sentence.
+- **S4. Paragraph openings.** Start each paragraph with the paper's specific problem or finding (in a methods paragraph, with what was done or why). Background sentences that are in the source are content, so keep them, but move them out of the paragraph's first sentence.
 - **S5. Three-item lists.** Break the "A, B, and C" rhythm without dropping an item. Vary the method across the document:
   - Give one item the main clause and the others a phrase ("Microscopic voids form during cycling, accompanied by contact loss and dendrite growth."). Don't imply an order or a cause the source doesn't state.
   - Announce and walk through ("Three strategies were tested. The first deposited...").
   - Give two items one sentence and the third its own sentence with its own verb and angle.
 
-  Never end the split-off item with "too", "as well", or "alongside them", and don't lean on "also". The checker warns when more than two sentences end that way or when "also" is overused.
+  Never end the split-off item with "too", "as well", or "alongside them", and don't lean on "also". Swapping in "along with", "together with", or "alongside" everywhere just moves the pattern. The checker warns when more than two sentences end with an add-on or when these connectors are overused.
 - **S6. Punctuation.** No semicolons. No reveal colons ("The reason is clear: ..."). Colons in titles, ratios, and times are fine.
 - **S7. Tails and "however".** Split ", cutting X..." into ". This cut X...". Rewrite "X, however, Y" as "Yet X Y" or as two sentences.
 - **S8. Stock phrasing.** Cut: Furthermore, Moreover, Additionally, Notably, Ultimately, In conclusion, In summary, In short, It is important/crucial to note, pivotal, vital role, integral role, tapestry, delve into, testament, paramount, transformative potential, the landscape of, cornerstone, synergy, holistic, and "To address these challenges, we...". When the phrase carries meaning, keep the meaning in plain words: "the transformative potential of X" becomes "how X could transform...".
-- **S9. Conclusions.** Rewrite mandates ("must deploy", "is paramount for", "hinges on") as plain recommendations ("should", "we recommend"). These are recommendations, not findings, so H3's hedging rule doesn't apply to them. Don't turn a stated dependency ("success depends on X") into a recommendation, and don't add a mechanism the source doesn't describe.
+- **S9. Conclusions.** Rewrite mandates ("must deploy", "is paramount for", "is vital to", "hinges on") as plain recommendations ("should", "we recommend"). These are recommendations, not findings, so H3's hedging rule doesn't apply to them. Don't turn a stated dependency ("success depends on X") into a recommendation, and don't add a mechanism the source doesn't describe.
 
 ## Examples
 
