@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.9.0)
+Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.10.0)
 
 Groups the sentences a detector highlighted (e.g. ZeroGPT's yellow spans)
 into runs, so they can be rewritten as units. Detectors such as ZeroGPT
@@ -136,7 +136,7 @@ def report(draft, flagged_lines, gap=1):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.9.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.10.0)')
     parser.add_argument('draft', help='The draft that was scanned')
     parser.add_argument('flagged', help='File with one highlighted sentence (or its opening words) per line')
     parser.add_argument('--gap', type=int, default=1, help='Unflagged sentences to bridge inside a run (default 1)')

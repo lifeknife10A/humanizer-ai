@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 4 Splicer (v7.9.0)
+Academic Humanizer: Phase 4 Splicer (v7.10.0)
 
 Splices rewritten runs back into a draft. Only the text of each run's
 ORIGINAL block is replaced. Every other character of the draft is copied
@@ -11,6 +11,11 @@ The runs file comes from `flagged_runs.py DRAFT FLAGGED --emit runs.txt`.
 
 Usage:
   apply_runs.py DRAFT RUNS_FILE -o NEW_DRAFT [--source SOURCE] [--facts FACTS]
+
+Every run needs a rewrite. An empty REWRITE leaves the run unchanged in the
+spliced draft but blocks READY TO SCAN. A run made only of headings or formula
+lines may be kept on purpose by writing KEEP in its REWRITE slot (for papers
+whose headings and equations can't change).
 
 Exit codes: 0 ok, 1 checker failure, 2 a run could not be applied.
 """
@@ -28,6 +33,9 @@ BARELY_CHANGED = 0.8
 # The 5.3% round included an 18-word sentence, so slightly long sentences inside a rewrite
 # are reported but don't block READY TO SCAN.
 LONG_SENTENCE_SLACK = 20
+
+# Writing this in a REWRITE slot keeps a heading- or formula-only run unchanged on purpose.
+KEEP = 'KEEP'
 
 RUN_HEADER = re.compile(r'^=== RUN (\d+) ===\s*$', re.MULTILINE)
 
@@ -61,6 +69,29 @@ def parse_runs(text):
     return runs
 
 
+def _filled(rewrite):
+    return bool(rewrite) and rewrite != KEEP
+
+
+def _fixed_format(original):
+    """True when a run is made only of headings or formula lines, the only runs KEEP may skip."""
+    units = segment(original)
+    return bool(units) and all(u.heading for u in units)
+
+
+def unfilled_runs(runs):
+    """Run numbers still waiting for a rewrite: empty slots, and KEEP on a run that has prose in it."""
+    return [n for n, original, rewrite in runs
+            if not rewrite or (rewrite == KEEP and not _fixed_format(original))]
+
+
+def coverage(runs):
+    """(runs rewritten, runs total, share of the runs' words that were rewritten)."""
+    words = [len(o.split()) for _, o, _ in runs]
+    done = [len(o.split()) for _, o, r in runs if _filled(r)]
+    return len(done), len(runs), sum(done) / (sum(words) or 1)
+
+
 def _join_rewrite(lines):
     """Joins REWRITE lines into prose, but keeps bullet and formula lines on lines of their own."""
     out = []
@@ -88,10 +119,10 @@ def _locate(draft, original):
 
 
 def splice(draft, runs):
-    """Returns (new_draft, applied_numbers, errors). Runs with an empty REWRITE are left as they are."""
+    """Returns (new_draft, applied_numbers, errors). Runs with an empty or KEEP REWRITE are left as they are."""
     spans, errors = [], []
     for number, original, rewrite in runs:
-        if not rewrite:
+        if not _filled(rewrite):
             continue
         span, error = _locate(draft, original)
         if error:
@@ -160,7 +191,7 @@ def run_meaning_changes(runs):
     """Per run: hedges or limiters the rewrite lost (blocking) and content words it dropped (to check)."""
     lost, dropped = [], []
     for number, original, rewrite in runs:
-        if not rewrite:
+        if not _filled(rewrite):
             continue
         for kind, pattern in HEDGE_CLASSES.items():
             before = [m.lower() for m in re.findall(pattern, original, re.IGNORECASE)]
@@ -177,7 +208,7 @@ def run_meaning_changes(runs):
 def review_runs(runs, result):
     """Sorts checker findings into those inside rewritten runs (fix) and those outside (leave),
     and flags highlighted sentences that a rewrite barely changed."""
-    rewrites = [_norm(r) for _, _, r in runs if r]
+    rewrites = [_norm(r) for _, _, r in runs if _filled(r)]
     inside, outside, general = [], [], []
     for f in result['findings']:
         if not f['where'] or f['where'].startswith('source'):
@@ -188,7 +219,7 @@ def review_runs(runs, result):
             outside.append(f)
     copied = []
     for number, original, rewrite in runs:
-        if not rewrite:
+        if not _filled(rewrite):
             continue
         new_sentences = [_words(s.text) for s in segment(rewrite)]
         for s in segment(original):
@@ -205,8 +236,16 @@ def _minor(finding):
     return finding['kind'] == 'long-sentence' and len(finding['text'].split()) <= LONG_SENTENCE_SLACK
 
 
-def format_review(inside, outside, general, copied, hedges=(), meaning=((), ()), enumerations=()):
+def format_review(inside, outside, general, copied, hedges=(), meaning=((), ()), enumerations=(), runs=()):
     lines = ['=== PHASE 4 REVIEW ===']
+    unfilled = unfilled_runs(runs)
+    if runs:
+        done, total, share = coverage(runs)
+        lines.append(f'Runs rewritten: {done} of {total} ({share:.0%} of the highlighted runs\' words)')
+    if unfilled:
+        lines.append(f'Runs still without a rewrite: {", ".join(map(str, unfilled))}. Fill every REWRITE slot. '
+                     'An unrewritten run stays highlighted, so the score cannot drop below its share. '
+                     f'Only a run made entirely of headings or formula lines may say {KEEP}.')
     if copied:
         lines.append(f'Highlighted sentences barely changed (rewrite keeps {BARELY_CHANGED:.0%}+ of their words; '
                      'restructure them, or they will be flagged again):')
@@ -238,14 +277,14 @@ def format_review(inside, outside, general, copied, hedges=(), meaning=((), ()),
         lines.append(f'  {f["level"]}  {f["kind"]}: {f["message"]}{where}')
     lines.append(f'Warnings in sentences outside the runs: {len(outside)}. Those sentences already passed the '
                  'detector; leave them unchanged.')
-    ok = (not copied and not hedges and not lost and not enumerations and not blocking
+    ok = (not unfilled and not copied and not hedges and not lost and not enumerations and not blocking
           and not any(f['level'] == 'FAIL' for f in general))
     lines.append('PHASE 4 RESULT: ' + ('READY TO SCAN' if ok else 'REVISE runs.txt AND RUN AGAIN'))
     return '\n'.join(lines)
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.9.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.10.0)')
     parser.add_argument('draft', help='The draft that was scanned')
     parser.add_argument('runs', help='Runs file with REWRITE slots filled in')
     parser.add_argument('-o', '--output', required=True, help='Where to write the new draft')
@@ -266,9 +305,9 @@ def main(argv=None):
         return 2
     with open(args.output, 'w', encoding='utf-8') as f:
         f.write(new_draft)
-    skipped = [n for n, _, r in runs if not r]
+    skipped = [n for n, _, r in runs if not _filled(r)]
     print(f'Applied runs: {", ".join(map(str, applied)) or "none"}'
-          + (f'; left unchanged (empty REWRITE): {", ".join(map(str, skipped))}' if skipped else ''))
+          + (f'; left unchanged (empty or {KEEP}): {", ".join(map(str, skipped))}' if skipped else ''))
     print(f'Everything outside those runs is unchanged. Written to {args.output}')
 
     if not args.source:
@@ -284,7 +323,8 @@ def main(argv=None):
     print(format_report(result))
     print()
     print(format_review(*review_runs(runs, result), hedges=hedge_changes(draft, new_draft),
-                        meaning=run_meaning_changes(runs), enumerations=enumeration_changes(draft, new_draft)))
+                        meaning=run_meaning_changes(runs), enumerations=enumeration_changes(draft, new_draft),
+                        runs=runs))
     return 0 if result['passed'] else 1
 
 

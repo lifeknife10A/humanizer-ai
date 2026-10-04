@@ -51,6 +51,21 @@ Observations:
 - **One round of run-level rewriting cut the score by half (B).** The 16-word cap with the authors' voice beat longer connected prose.
 - **Neighbours can flip.** Some sentences kept word for word were unhighlighted in round 1 but highlighted in round 2, for example "Such inputs are designed to elicit unintended or harmful outputs." This is more evidence that ZeroGPT scores context windows.
 
+## Phase 4 on a structured paper (smart grids)
+
+Gemini 3.6 (low) ran round 1 with skill v7.9 on its own 67.2% prose rewrite (`grid_gemini36low_pass2_prose.txt`). The scan had 89 highlighted sentences in 28 runs (`phase4_inputs/grid_pass2_zerogpt_highlights.txt`, estimate 66.7%).
+
+| Round | Text | Change | ZeroGPT |
+| :--- | :--- | :--- | :--- |
+| 0 | `grid_gemini36low_pass2_prose.txt` | Single pass, lists to prose | 67.2% |
+| 1 | `grid_gemini36low_phase4_round1.txt` | Rewrote runs 1, 2 and 21; left the other 25 REWRITE slots empty | 66% |
+
+Labels: `phase4_inputs/grid_round1_zerogpt_highlights.txt` (87 of 150 units plus the title, estimate 65.5%).
+
+- **The round failed because most runs were never rewritten.** v7.9's splicer treated an empty REWRITE as "keep this run" and still printed READY TO SCAN. Gemini needed 11 splice attempts and finished with 25 of 28 runs empty. v7.10 blocks READY TO SCAN until every run has a rewrite (a heading- or formula-only run may say KEEP).
+- **No neighbour flips this time.** All 132 untouched sentences kept their label. With most of the paper still highlighted, there was little clean context left to flip.
+- **Gemini's rewrites were sentence-for-sentence synonym swaps.** Of 18 rewritten sentences, 12 stayed highlighted. Every rewritten sentence of 10 words or more stayed highlighted, and all six that cleared had 9 words or fewer. Word overlap with the original separated cleared from flagged rewrites only weakly (Jaccard AUC 0.65 here, 0.62 over the abstract's rounds), so the "barely changed" gate can't catch this. The guidance against keeping the original sentence shape has to carry it.
+
 ## Limits
 
 These labels come from one abstract, one detector and single scans. ZeroGPT may change its model at any time, and repeated scans of the same text may differ by a few points.

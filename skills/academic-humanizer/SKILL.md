@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.9.0)
+# Academic Humanizer (v7.10.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -108,9 +108,9 @@ Offer this phase at delivery. Run it when the user comes back with a scan. **Nev
    python3 SKILL_DIR/scripts/flagged_runs.py draft.txt flagged.txt --emit runs.txt
    ```
    It prints the estimated score and writes `runs.txt`, with one block per run: the run's ORIGINAL text, its context sentences, and an empty REWRITE slot. If it lists flagged lines that matched no sentence, fix those lines in `flagged.txt` and run it again.
-3. **Write the rewrites into `runs.txt`.** Fill in each REWRITE slot and leave ORIGINAL and CONTEXT lines untouched. Each rewrite replaces the whole run, so it must carry every claim, number, hedge and list item of that run's ORIGINAL (H1–H5 still apply). How to rewrite a run, in the style that won on our test:
+3. **Write the rewrites into `runs.txt`.** Fill in **every** REWRITE slot and leave ORIGINAL and CONTEXT lines untouched. A run left unrewritten stays highlighted, so the score can't fall below its share. On a long paper, 25–30 runs are normal. Work through them in order, about five at a time, and run step 4 after each batch to catch problems early. The result stays REVISE until every slot is filled. Never empty a slot to get past a warning; fix the warning. Only a run made entirely of headings or formula lines may be kept on purpose, by writing KEEP in its slot, and only when the paper's format is fixed. Each rewrite replaces the whole run, so it must carry every claim, number, hedge and list item of that run's ORIGINAL (H1–H5 still apply). How to rewrite a run, in the style that won on our test:
    - **Write in the authors' voice, around what was done:** "We put the adversarial robustness of contemporary LLMs to an empirical test" rather than "This paper presents an empirical investigation into…".
-   - **Restructure, don't polish.** Change grammatical subjects, reorder the run's claims, and split or merge sentences inside the run. Swapping synonyms into the same sentence shape doesn't clear a run.
+   - **Restructure, don't polish.** Change grammatical subjects, reorder the run's claims, and split or merge sentences inside the run. Swapping synonyms into the same sentence shape doesn't clear a run. On the smart-grid paper, Gemini rewrote runs sentence for sentence with synonyms, and every rewritten sentence of 10 or more words was highlighted again. Only its short sentences cleared. Changing the words isn't enough; change the sentences.
    - **Keep sentences at 16 words or fewer, and mix in short ones.** Longer connected sentences scored worse (19.5% against 13.9%).
    - **Prefer plain verbs and concrete phrasing to abstract nouns:** "Multi-turn exploitation plays a longer game. Its adversarial effects pile up across the conversation history."
    - **Leading with the point also works:** "Getting past safety mechanisms is the aim of jailbreaks." It scored the same as the authors' voice in round 3.
@@ -124,6 +124,7 @@ Offer this phase at delivery. Run it when the user comes back with a scan. **Nev
    python3 SKILL_DIR/scripts/apply_runs.py draft.txt runs.txt -o draft_next.txt --source source.txt --facts facts.md
    ```
    Drop `--facts facts.md` when there's no fact sheet. It replaces only the runs, copies everything else unchanged, and checks the result against the original source, never the previous draft. Its PHASE 4 REVIEW sorts the findings for you:
+   - **Runs still without a rewrite:** fill those REWRITE slots. This blocks READY TO SCAN.
    - **Highlighted sentences barely changed:** your rewrite kept 80% or more of the sentence's words. Restructure it. In rounds that lowered the score, rewrites kept about half of each highlighted sentence's words and never more than 79%; near-copies get flagged again.
    - **Hedges or limiting words lost in your rewrites:** you dropped a "may", "often", "suggests", "some", "strongly" or "only", or added a "must". Restore it. "Some larger models fare worse" is not "Larger models fare worse."
    - **Enumerations broken by your rewrites:** a sentence outside the run still says "Third, …" but your rewrite removed "First" or "Second". Keep the ordinal in the rewrite.
@@ -132,10 +133,10 @@ Offer this phase at delivery. Run it when the user comes back with a scan. **Nev
    - **Whole-document findings:** fix any failure, and check each hedge or drop warning.
    - **Warnings in sentences outside the runs:** ignore them. Those sentences already passed the detector.
 
-   Run it again until it says READY TO SCAN, for at most three tries. If it says a run's ORIGINAL wasn't found, the runs file was edited outside a REWRITE slot; regenerate it in step 2.
+   Once every slot is filled, run it again until it says READY TO SCAN, for at most three more tries. If it says a run's ORIGINAL wasn't found, the runs file was edited outside a REWRITE slot; regenerate it in step 2.
 5. **Optional second variant.** If the user is willing to scan twice, copy `runs.txt` to `runs_b.txt`, fill it with a different rewrite of the same runs, and splice it to `draft_next_b.txt`. Continue with whichever scans lower.
 6. **Deliver** `draft_next.txt` (and the variant, if any), the checker report, and the estimated score. Ask for the next scan.
-7. **Stop** when the score is under 10%, after four feedback rounds, or when a round doesn't lower the score. Report the score history, round by round. Each round has roughly halved the score in our tests, so a text starting near 30% needs two rounds and one starting near 65% needs about four.
+7. **Stop** when the score is under 10%, after four feedback rounds, or when a round with every run rewritten doesn't lower the score. A round that left runs unrewritten doesn't count; finish those runs and rescan. Report the score history, round by round. Each round has roughly halved the score in our tests, so a text starting near 30% needs two rounds and one starting near 65% needs about four.
 
 ## Hard constraints
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 4 Splicer (v7.9.0)
+Unit Test Suite for the Phase 4 Splicer (v7.10.0)
 """
 
 import os
@@ -41,6 +41,28 @@ class TestApplyRuns(unittest.TestCase):
         text = runs_file(DRAFT, ["Our method reaches"])
         new, applied, errors = splice(DRAFT, parse_runs(text))
         self.assertEqual((new, applied, errors), (DRAFT, [], []))
+
+    def test_empty_runs_block_ready_to_scan(self):
+        from apply_runs import format_review, unfilled_runs
+        text = runs_file(DRAFT, ["Image classifiers differ", "Our method reaches"])
+        runs = parse_runs(fill(text, ["Classifiers for images differ."]))
+        self.assertEqual(unfilled_runs(runs), [2])
+        review = format_review([], [], [], [], runs=runs)
+        self.assertIn('Runs rewritten: 1 of 2', review)
+        self.assertIn('Runs still without a rewrite: 2', review)
+        self.assertIn('REVISE runs.txt', review)
+
+    def test_keep_only_skips_heading_or_formula_runs(self):
+        from apply_runs import format_review, unfilled_runs
+        draft = "Title Line\n\n2. Forecasting with machine learning\n\nPower = 0.5 * Density\nOur method reaches 87%."
+        text = runs_file(draft, ["2. Forecasting with", "Our method reaches"])
+        runs = parse_runs(fill(text, ["KEEP", "KEEP"]))
+        self.assertEqual(unfilled_runs(runs), [2])
+        new, applied, errors = splice(draft, runs)
+        self.assertEqual((new, applied, errors), (draft, [], []))
+        runs = parse_runs(fill(text, ["KEEP", "We reached 87%."]))
+        self.assertEqual(unfilled_runs(runs), [])
+        self.assertIn('READY TO SCAN', format_review([], [], [], [], runs=runs))
 
     def test_multiline_rewrite_is_joined(self):
         text = runs_file(DRAFT, ["Our method reaches"])

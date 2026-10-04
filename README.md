@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9+-green.svg)](https://python.org)
-[![Tests: Passing](https://img.shields.io/badge/Tests-66%20Passing-brightgreen.svg)](tests/)
+[![Tests: Passing](https://img.shields.io/badge/Tests-68%20Passing-brightgreen.svg)](tests/)
 [![ZeroGPT Target: <10%](https://img.shields.io/badge/ZeroGPT-2.9%25%20Achieved-success.svg)](benchmarks/)
 
 **Humanizer-AI** is an empirically validated, open-source pipeline designed to transform AI-generated academic papers, theses, and technical reports into authentic scholarship that reliably scores **< 10% AI (or 0%)** on ZeroGPT, Turnitin, and GPTZero in **a single turnkey iteration** while strictly preserving full manuscript length and factual accuracy.
@@ -22,7 +22,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 
 ---
 
-## System Architecture: Fact-Sheet Pipeline (v7.9.0)
+## System Architecture: Fact-Sheet Pipeline (v7.10.0)
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
@@ -68,7 +68,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Phase 4, detector feedback (v7.9.0).** A single pass lands around 27–35% on ZeroGPT, and local proxies can't predict which sentences ZeroGPT flags (see [the label study](research/ZEROGPT_LABEL_STUDY.md)). To go below 10%, the user scans the output and pastes back the highlighted sentences. `scripts/flagged_runs.py` groups them into runs and writes a fill-in file. The model writes only the rewrite of each run, and `scripts/apply_runs.py` splices those in. Every other sentence stays byte-for-byte the same, and the result is rechecked against the source. This repeats for up to three rounds. On the second test abstract, two rounds took ZeroGPT from 27.2% to 5.3% (v7.1.0 reproduces that round exactly).
+**Phase 4, detector feedback (v7.10.0).** A single pass lands around 27–35% on ZeroGPT, and local proxies can't predict which sentences ZeroGPT flags (see [the label study](research/ZEROGPT_LABEL_STUDY.md)). To go below 10%, the user scans the output and pastes back the highlighted sentences. `scripts/flagged_runs.py` groups them into runs and writes a fill-in file. The model writes only the rewrite of each run, and `scripts/apply_runs.py` splices those in. Every other sentence stays byte-for-byte the same, and the result is rechecked against the source. This repeats for up to four rounds, and every highlighted run must be rewritten before the splicer reports READY TO SCAN. On the second test abstract, two rounds took ZeroGPT from 27.2% to 5.3% (v7.1.0 reproduces that round exactly).
 
 `humanizer.py` (the v5.0.0 regex engine) is no longer part of the skill pipeline. Its rewrites can split clauses into fragments, glue words together, and drop list items, so the skill now checks the LLM's output instead of rewriting it. The file and its tests remain in the repo.
 
@@ -106,6 +106,15 @@ We benchmarked this system against **ZeroGPT** using an identical 1,037-word aca
 | Opus 5.5 + Phase 4 round 1 | v7.0 | 992 | **13.9%** | Rewrote only the 7 highlighted runs (authors' voice) |
 | Opus 5.5 + Phase 4 round 2 | v7.0 | 1,028 | **5.3%** | Rewrote the 5 remaining runs; only the title and first 3 sentences are still highlighted |
 | Haiku 4.5 Phase 4 round 1, from the Gemini v6.3 text | v7.4 | 953 | **13.8%** | Cold run from the skill alone, starting at 30.5% |
+
+### Third test: structured paper on AI for smart grids (1,327 words, 8 sections, 4 word-equations)
+
+| Run | Skill | Words | ZeroGPT AI % | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| Raw paper | n/a | 1,327 | **96.4%** | |
+| Gemini 3.6 (low), bullets kept | v7.6 | 1,351 | **69.2%** | Mostly textbook definitions; headings and formulas are 12% of the words |
+| Gemini 3.6 (low), lists to prose | v7.8 | 1,430 | **67.2%** | Formulas left in word form |
+| Gemini 3.6 (low) Phase 4 round 1 | v7.9 | 1,423 | **66%** | Rewrote only 3 of 28 runs (18 of 89 highlighted sentences). v7.9 let empty REWRITE slots through to READY TO SCAN; v7.10 blocks them |
 
 Texts and sentence-level ZeroGPT labels are in [`research/data/`](research/data/).
 
