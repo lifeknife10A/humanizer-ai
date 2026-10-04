@@ -35,6 +35,15 @@ We transcribed ZeroGPT's sentence highlighting for three rewrites of the same Ha
 | 3 | `llm_round3_variant_C.txt` | Rewrote B's 5 remaining runs, continuing B's style | **5.3%** |
 | 3 | `llm_round3_variant_D.txt` | Rewrote the same runs with the predicate fronted ("…is the aim of jailbreaks") | **5.5%** |
 
+**Weaker model, cold.** Haiku 4.5 ran Phase 4 from the skill alone (v7.4.0 tools) on Gemini's 30.5% text (`llm_gemini36low_v6.3.txt`):
+
+| Round | Text | Change | ZeroGPT |
+| :--- | :--- | :--- | :--- |
+| 0 | `llm_gemini36low_v6.3.txt` | Gemini 3.6 (low) single pass | 30.5% |
+| 1 | `llm_haiku45_phase4_round1.txt` | Haiku rewrote the 8 highlighted runs and looped until READY TO SCAN | **13.8%** |
+
+That's the same first-round drop as Opus (27.2% to 13.9%). Several sentences Haiku didn't touch became highlighted, again pointing to window-level scoring.
+
 Observations:
 - **Highlight share still tracks the score:** 13.6% estimated against 13.9% for B, 21.0% against 19.5% for A.
 - **Two feedback rounds took the text from 27.2% to 5.3%,** with every number, hedge and list item intact (`check_draft.py` passes). Only the title and the first three sentences remain highlighted (3.9% of words; the title makes up the rest). The two round-3 styles scored the same, so after B's approach the choice of style mattered less than rewriting exactly the highlighted runs.
