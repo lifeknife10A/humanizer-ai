@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 2 Draft Checker (v7.5.0)
+Unit Test Suite for the Phase 2 Draft Checker (v7.6.0)
 Validates fact extraction, fact-sheet enforcement, and style warnings.
 """
 
@@ -80,6 +80,21 @@ class TestFactExtraction(unittest.TestCase):
     def test_closing_quote_ends_sentence(self):
         sentences = segment('We term this "adversarial fragility." Models trained on it often fail.')
         self.assertEqual(len(sentences), 2)
+
+    def test_bullets_and_formulas_are_separate_units(self):
+        text = ("Intro text here:\n- Wind Dynamics: Output depends on velocity.\n"
+                "  Power = 0.5 * Density * Area * (Velocity)^3\n- Solar Derating: Efficiency declines with heat.")
+        units = segment(text)
+        self.assertEqual([u.text[:12] for u in units], ['Intro text h', '- Wind Dynam', 'Power = 0.5 ', '- Solar Dera'])
+        self.assertEqual([u.heading for u in units], [False, False, True, False])
+
+    def test_bullet_label_colon_and_markers_are_not_style_issues(self):
+        text = ("Three factors matter:\n- Grid Frequency: Plants lack inertia here.\n"
+                "- Voltage Deviation: Reverse flow creates spikes.\n- Forecasting: Old methods fail often.")
+        found = kinds(check(text, text))
+        self.assertNotIn('colon', found)
+        self.assertNotIn('parallel', found)
+        self.assertNotIn('openings', found)
 
     def test_unpunctuated_single_line_is_heading(self):
         sentences = segment("Extended Abstract: A Title\n\nBody text here.")

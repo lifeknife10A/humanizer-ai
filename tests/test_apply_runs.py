@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 4 Splicer (v7.5.0)
+Unit Test Suite for the Phase 4 Splicer (v7.6.0)
 """
 
 import os
@@ -94,6 +94,12 @@ class TestApplyRuns(unittest.TestCase):
         self.assertEqual(enumeration_changes(before, after), ['paragraph 1: "second" is left without "first"'])
         self.assertEqual(enumeration_changes(before, before), [])
         self.assertEqual(enumeration_changes(before, "Heads fail first. Next come biases. Third, filters miss."), [])
+
+    def test_bullet_lines_in_a_rewrite_stay_bullets(self):
+        from apply_runs import _join_rewrite
+        self.assertEqual(_join_rewrite(["- Frequency: Plants lack inertia.", "System inertia drops.",
+                                        "- Voltage: Reverse flow spikes voltage."]),
+                         "- Frequency: Plants lack inertia. System inertia drops.\n- Voltage: Reverse flow spikes voltage.")
 
     def test_edited_original_is_rejected(self):
         runs = [(1, "This sentence is not in the draft.", "Replacement.")]

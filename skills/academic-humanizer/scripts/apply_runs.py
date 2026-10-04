@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 4 Splicer (v7.5.0)
+Academic Humanizer: Phase 4 Splicer (v7.6.0)
 
 Splices rewritten runs back into a draft. Only the text of each run's
 ORIGINAL block is replaced. Every other character of the draft is copied
@@ -19,7 +19,8 @@ import argparse
 import re
 import sys
 
-from check_draft import HEDGE_CLASSES, MUST, _stems, check, format_report, segment
+from check_draft import (HEDGE_CLASSES, LIST_MARKER_LINE, MUST, _is_formula, _stems, check, format_report,
+                         segment)
 
 # Rewrites that cleared ZeroGPT runs kept at most 79% of each highlighted sentence's
 # words (typically 42-50%); near-copies at 80% or more were flagged again.
@@ -55,9 +56,23 @@ def parse_runs(text):
             elif section == 'original':
                 original.append(line.strip())
             elif section == 'rewrite':
-                rewrite.append(line.strip())
-        runs.append((int(h.group(1)), ' '.join(x for x in original if x), ' '.join(x for x in rewrite if x)))
+                rewrite.append(line.rstrip())
+        runs.append((int(h.group(1)), ' '.join(x for x in original if x), _join_rewrite(rewrite)))
     return runs
+
+
+def _join_rewrite(lines):
+    """Joins REWRITE lines into prose, but keeps bullet and formula lines on lines of their own."""
+    out = []
+    for line in lines:
+        if not line.strip():
+            continue
+        if out and not (LIST_MARKER_LINE.match(line) or _is_formula(line)) and not _is_formula(out[-1]):
+            out[-1] += ' ' + line.strip()
+        else:
+            out.append(line if LIST_MARKER_LINE.match(line) else line.strip())
+    return '\n'.join(' '.join(l.split()) if not LIST_MARKER_LINE.match(l)
+                     else re.match(r'\s*', l).group(0) + ' '.join(l.split()) for l in out)
 
 
 def _locate(draft, original):
@@ -82,7 +97,7 @@ def splice(draft, runs):
         if error:
             errors.append(f'Run {number}: {error}')
             continue
-        spans.append((span, number, ' '.join(rewrite.split())))
+        spans.append((span, number, rewrite))
     spans.sort()
     for prev, cur in zip(spans, spans[1:]):
         if cur[0][0] < prev[0][1]:
@@ -230,7 +245,7 @@ def format_review(inside, outside, general, copied, hedges=(), meaning=((), ()),
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.5.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.6.0)')
     parser.add_argument('draft', help='The draft that was scanned')
     parser.add_argument('runs', help='Runs file with REWRITE slots filled in')
     parser.add_argument('-o', '--output', required=True, help='Where to write the new draft')

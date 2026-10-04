@@ -2,7 +2,7 @@
 name: academic-humanizer
 description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
 metadata:
-  version: "7.5.0"
+  version: "7.6.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.5.0)
+# Academic Humanizer (v7.6.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -42,6 +42,8 @@ If no fact sheet was given, don't stop to ask for one. Work from the source alon
    ```
    It lists every number, acronym, and formula in the source (all must appear in your draft) and in the fact sheet (these may be added). Nothing else may appear in your draft. Drop `--facts facts.md` when there is no fact sheet.
 3. **Rewrite (Phase 1)** paragraph by paragraph, following the hard constraints and then the style rules below. Leave titles and headings unchanged. Save the result as `draft.txt`.
+
+   For structured papers, keep the structure: numbered section headings stay as they are, bulleted lists stay bulleted, and formula lines (lines with "=") stay character for character. Rewrite the prose inside bullets. A bullet's "Label: description" colon is fine, and so is a colon that introduces a list.
 4. **Fidelity reread.** The checker can't see claims or lists, so do this before checking. Put each source paragraph next to its rewrite and confirm:
    - every list item is still there (H4)
    - every claim is still there, and none was added (H3). Check short sentences hardest: if you can't point to the source sentence one comes from ("Pixel perturbations fail here."), delete it
@@ -108,6 +110,7 @@ Offer this phase at delivery. Run it when the user comes back with a scan. **Nev
    - **Prefer plain verbs and concrete phrasing to abstract nouns:** "Multi-turn exploitation plays a longer game. Its adversarial effects pile up across the conversation history."
    - **Leading with the point also works:** "Getting past safety mechanisms is the aim of jailbreaks." It scored the same as the authors' voice in round 3.
    - **Read the CONTEXT lines** so the rewrite still connects to the sentences around it.
+   - **Keep bullets as bullets.** If a run spans bullet lines, start each rewritten bullet on its own line with the same marker ("- "). `apply_runs.py` keeps those line breaks. Never rewrite a formula line.
    - **Add nothing,** not even a harmless-looking modifier ("tested with care", "improves robustness markedly"). Every word of a rewrite must trace to the run's ORIGINAL or the source.
    - **Keep what each sentence does.** An aim stays an aim: "focusing on identifying vulnerability patterns" never becomes "These models showed vulnerability patterns." What the authors introduce stays introduced: "We introduce a novel framework that sorts attacks into four dimensions" never becomes "Four attack dimensions emerged." 
 4. **Splice and check.**

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 2 Draft Checker (v7.5.0)
+Academic Humanizer: Phase 2 Draft Checker (v7.6.0)
 
 Compares a rewritten draft against its source text and an optional
 author-supplied fact sheet. It reports problems; it never rewrites text.
@@ -210,23 +210,65 @@ def read_fact_sheet(text):
     return '\n'.join(line for line in text.splitlines() if not line.lstrip().startswith('#'))
 
 
+LIST_MARKER_LINE = re.compile(r'^\s*(?:[-*\u2022]|\d{1,2}[.)])\s+')
+FORMULA_LINE = re.compile(r'(?:^|\s)=(?:\s|$)')
+
+
+def strip_marker(text):
+    """Drops a leading bullet or list number ("- ", "2) ") so style checks see the sentence itself."""
+    return LIST_MARKER_LINE.sub('', text, count=1)
+
+
+def _is_formula(line):
+    return bool(FORMULA_LINE.search(line)) and not re.search(r'[.?!]$', line.strip())
+
+
+def _blocks(para):
+    """Splits a paragraph at bullet lines and formula lines; other lines continue the current block."""
+    blocks = []
+    for line in para.split('\n'):
+        if not line.strip():
+            continue
+        starts_block = (not blocks or LIST_MARKER_LINE.match(line) or _is_formula(line)
+                        or blocks[-1][1])
+        if starts_block:
+            blocks.append([line.strip(), _is_formula(line)])
+        else:
+            blocks[-1][0] += ' ' + line.strip()
+    return [(' '.join(b.split()), formula) for b, formula in blocks]
+
+
 def segment(text):
-    """Splits text into sentences, tagging single-line unpunctuated paragraphs as headings."""
+    """Splits text into sentences. Single-line unpunctuated paragraphs are headings; bullet and
+    formula lines start new units, and formula lines are exempt from style checks like headings."""
     sentences = []
     paragraphs = [p.strip() for p in re.split(r'\n\s*\n', text) if p.strip()]
     for p_idx, para in enumerate(paragraphs, 1):
         flat = ' '.join(para.split())
-        if '\n' not in para and len(flat.split()) <= 30 and not re.search(r'[.?!]["”)\]]?$', flat):
+        if '\n' not in para and len(flat.split()) <= 30 and not re.search(r'[.?!]["\u201d)\]]?$', flat):
             sentences.append(Sentence(p_idx, 1, flat, True))
             continue
-        pieces = []
-        for piece in re.split(r'(?<=[.?!])\s+|(?<=[.?!]["\u201d\u2019\')\]])\s+', flat):
-            if pieces and (pieces[-1].split()[-1].lstrip('([') in ABBREVIATIONS or piece[:1].islower()):
-                pieces[-1] += ' ' + piece
-            else:
-                pieces.append(piece)
-        sentences.extend(Sentence(p_idx, s_idx, s, False) for s_idx, s in enumerate(pieces, 1))
+        s_idx = 0
+        for block, formula in _blocks(para):
+            if formula:
+                s_idx += 1
+                sentences.append(Sentence(p_idx, s_idx, block, True))
+                continue
+            pieces = []
+            for piece in re.split(r'(?<=[.?!])\s+|(?<=[.?!]["\u201d\u2019\')\]])\s+', block):
+                if pieces and (pieces[-1].split()[-1].lstrip('([') in ABBREVIATIONS or piece[:1].islower()):
+                    pieces[-1] += ' ' + piece
+                else:
+                    pieces.append(piece)
+            for piece in pieces:
+                s_idx += 1
+                sentences.append(Sentence(p_idx, s_idx, piece, False))
     return sentences
+
+
+def _is_label_colon(text):
+    """A bullet's "Label: description" colon is structure, not a reveal."""
+    return bool(LIST_MARKER_LINE.match(text)) and text.count(':') == 1 and len(text.split(':')[0].split()) <= 8
 
 
 def _text_numbers(text):
@@ -321,7 +363,7 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
             add('WARN', 'long-sentence', f'{len(words)} words (maximum {max_words})', s)
         if ';' in s.text:
             add('WARN', 'semicolon', 'split into separate sentences', s)
-        if REVEAL_COLON.search(s.text):
+        if REVEAL_COLON.search(s.text) and not _is_label_colon(s.text):
             add('WARN', 'colon', 'end the sentence instead of using a reveal colon', s)
         if EM_DASH.search(s.text):
             add('WARN', 'em-dash', 'make the aside its own sentence or part of the main clause', s)
@@ -341,7 +383,8 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
             add('WARN', 'duplicate', 'repeats an earlier sentence', s)
         seen.append(word_set)
 
-        first = re.sub(r'[^a-z]', '', words[0].lower()) if words else ''
+        marker_free = strip_marker(s.text).split()
+        first = re.sub(r'[^a-z]', '', marker_free[0].lower()) if marker_free else ''
         run_length = run_length + 1 if first == run_word else 1
         run_word = first
         if run_length == 3:
@@ -366,7 +409,8 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
                 add('WARN', 'restatement', 'only repeats words from the sentences around it; '
                     'delete it or make it state something new from the source', s)
 
-    heads = [{w.lower() for w in re.findall(r'[A-Za-z-]+', s.text)[:FRAME_WORDS]} - FRAME_STOPWORDS for s in prose]
+    heads = [{w.lower() for w in re.findall(r'[A-Za-z][A-Za-z-]*', strip_marker(s.text))[:FRAME_WORDS]}
+             - FRAME_STOPWORDS for s in prose]
     i = 0
     while i + 2 < len(prose):
         shared = heads[i] & heads[i + 1] & heads[i + 2]
@@ -471,7 +515,7 @@ def _read(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.5.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.6.0)')
     parser.add_argument('source', help='Original text file')
     parser.add_argument('draft', nargs='?', help='Rewritten draft (omit to print the fact ledger)')
     parser.add_argument('--facts', help='Author-supplied fact sheet')
