@@ -12,10 +12,13 @@ humanizer-ai/
 ├── MATHEMATICS.md          # Theoretical & information-theoretic formulas (PPL, Burstiness, Zipf)
 ├── CHALLENGES.md           # Engineering log of all iterations, failures, and bottlenecks
 ├── AGENT_GUIDE.md          # This onboarding guide for agents & contributors
-├── humanizer.py            # Current deterministic Python engine (v5.0.0)
+├── humanizer.py            # v5.0.0 regex engine (no longer used by the skill)
 ├── skills/
 │   └── academic-humanizer/
-│       └── SKILL.md        # The codified LLM Skill instructions
+│       ├── SKILL.md                  # The skill: procedure, hard constraints, style rules
+│       ├── fact_sheet_template.md    # Author fact sheet: the only source of added specifics
+│       └── scripts/
+│           └── check_draft.py        # Phase 2 checker (fact ledger, fact & style checks)
 ├── benchmarks/             # Historical test cases with exact ZeroGPT scores
 │   ├── 00_baseline_raw_1037w_100pct_ai.txt
 │   ├── 01_gemini_pass_640w_63pct_ai.txt
@@ -26,14 +29,24 @@ humanizer-ai/
 │   ├── 06_full_1000w_fluff_mixed_980w_62_0pct_ai.txt
 │   └── 07_master_empirical_untruncated_952w.txt
 └── tests/
-    └── test_humanizer.py   # Unit test suite verifying deterministic transformations
+    ├── test_humanizer.py   # Tests for the v5.0.0 regex engine
+    └── test_check_draft.py # Tests for the Phase 2 checker
 ```
 
 ---
 
 ## 2. Core CLI Commands
 
-### Run the Deterministic Engine:
+### Run the Phase 2 Checker:
+```bash
+# Fact ledger: every number, acronym and formula a draft may use
+python3 skills/academic-humanizer/scripts/check_draft.py source.txt --facts facts.md
+
+# Check a draft against its source and fact sheet (exit code 1 on any FAIL)
+python3 skills/academic-humanizer/scripts/check_draft.py source.txt draft.txt --facts facts.md
+```
+
+### Run the v5.0.0 Regex Engine (standalone, not used by the skill):
 ```bash
 # Process a text file and output to stdout
 python3 humanizer.py benchmarks/00_baseline_raw_1037w_100pct_ai.txt
@@ -65,7 +78,7 @@ Whenever an agent writes code or rewrites text in this repository, it MUST adher
    - All real values ($3,860\text{ mAh g}^{-1}$, $312\%$, $1.0\text{ mA cm}^{-2}$, $18.4\ \Omega\cdot\text{cm}^2$, $82.6\%$, $1.2\text{--}3.8\text{ mA cm}^{-2}$, $0.5\text{--}7.0\text{ MPa}$, LLZTO, ToF-SIMS, Raman) must be preserved.
 3. **The Single-Pass Mandate**:
    - The user cannot perform 7 rounds of manual trial-and-error.
-   - All algorithmic transformations must execute in a single turnkey pipeline: Phase 1 (LLM generation) $\to$ Phase 2 (Deterministic engine).
+   - All transformations must execute in a single turnkey pipeline: Phase 1 (LLM rewrite) $\to$ Phase 2 (deterministic checker) $\to$ Phase 3 (LLM revises flagged sentences).
 
 ---
 

@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9+-green.svg)](https://python.org)
-[![Tests: Passing](https://img.shields.io/badge/Tests-8%20Passing-brightgreen.svg)](tests/)
+[![Tests: Passing](https://img.shields.io/badge/Tests-27%20Passing-brightgreen.svg)](tests/)
 [![ZeroGPT Target: <10%](https://img.shields.io/badge/ZeroGPT-2.9%25%20Achieved-success.svg)](benchmarks/)
 
 **Humanizer-AI** is an empirically validated, open-source pipeline designed to transform AI-generated academic papers, theses, and technical reports into authentic scholarship that reliably scores **< 10% AI (or 0%)** on ZeroGPT, Turnitin, and GPTZero in **a single turnkey iteration** while strictly preserving full manuscript length and factual accuracy.
@@ -18,45 +18,54 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 2. **The Zero-Hallucination Law (100% Factual Fidelity)**:
    Zero fabricated citations, zero made-up authors, and zero altered metrics. All chemical formulas ($\text{Li}_{6.4}\text{La}_3\text{Zr}_{1.4}\text{Ta}_{0.6}\text{O}_{12}$), quantitative values ($3,860\text{ mAh g}^{-1}$, $312\%$, $1.0\text{ mA cm}^{-2}$, $18.4\ \Omega\cdot\text{cm}^2$), and diagnostic techniques (ToF-SIMS, Raman, Synchrotron CT) are strictly preserved.
 3. **The Single-Pass Mandate (Zero Ping-Pong)**:
-   The pipeline executes in a single automated pass (Phase 1 LLM Unpacking $\to$ Phase 2 Deterministic Python Engine), eliminating tedious multi-round manual editing.
+   One run of the skill takes the text from raw draft to final output (Phase 1 LLM rewrite $\to$ Phase 2 deterministic check $\to$ Phase 3 targeted revision), with no rounds of manual editing.
 
 ---
 
-## System Architecture: The Two-Phase Pipeline
+## System Architecture: Fact-Sheet Pipeline (v6.0.0)
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                 Input Raw AI Academic Text                   │
-│         (High Perplexity Predictability, Uniform Cadence)   │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Phase 1: LLM Generative Unpacking & Syntactic Inversion     │
-│ (Executed via Agent Skill / Prompt Engine)                  │
-│ • Unpacks 35-word compounds into [14w + 12w + 4w punch]      │
-│ • Inverts canonical S-V-O into Prepositional/Adverbial heads│
-│ • Replaces introductory background fluff with lab parameters│
-│ • Bans triadic enumerations (A, B, and C)                    │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Phase 2: Deterministic Python Engine (humanizer.py v5.0.0)  │
-│ • Semicolon & Colon Splitter (zero punctuation monsters)    │
-│ • Participial Tail Decoupler (', cutting...' -> '. This cut')│
-│ • Anti-Preaching Scrubber ('must deploy', 'is paramount')   │
-│ • Triad Collapser (A, B, and C -> A and B)                  │
-│ • Burstiness Enforcer (guarantees sentence length variance) │
-│ • Forensic Quality Auditor (--stats)                        │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│         Final Publication-Grade Academic Output             │
-│        (< 10% AI Score, 100% Word Retention, Zero Fluff)    │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────┐   ┌──────────────────────────────┐
+│ Source text (AI draft)       │   │ Fact sheet (optional)        │
+│ every number, term and list  │   │ real parameters, settings,   │
+│ item in it must survive      │   │ results and citations from   │
+│                              │   │ the author: the ONLY source  │
+│                              │   │ of added specifics           │
+└──────────────┬───────────────┘   └──────────────┬───────────────┘
+               └─────────────────┬─────────────────┘
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Fact ledger (check_draft.py SOURCE --facts FACTS)               │
+│ • Lists every number, acronym and formula the draft may use     │
+└────────────────────────────────┬────────────────────────────────┘
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Phase 1: LLM rewrite (skills/academic-humanizer/SKILL.md)       │
+│ • Hard constraints first: no new or dropped numbers, terms,     │
+│   claims or list items; ≥95% length without padding            │
+│ • Then style: unpacking, short sentences, varied openings,      │
+│   no stock phrases, semicolons, tails or three-item rhythm      │
+└────────────────────────────────┬────────────────────────────────┘
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Phase 2: Deterministic checker (check_draft.py SOURCE DRAFT)    │◄─┐
+│ • FAIL: invented number, dropped number, retention < 95%        │  │
+│ • WARN: new acronym/formula, long sentence, stock phrase,       │  │
+│   semicolon, colon, tail, triad, duplicate, repeated opening    │  │
+│ • Reports only. It never rewrites text.                         │  │
+└────────────────────────────────┬────────────────────────────────┘  │
+                                 ▼                                   │
+┌─────────────────────────────────────────────────────────────────┐  │
+│ Phase 3: LLM revises only the flagged sentences (max 2 rounds)  │──┘
+└────────────────────────────────┬────────────────────────────────┘
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Final text + checker report + fact-sheet items used             │
+│ + questions for the author ("Details you could add")            │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+`humanizer.py` (the v5.0.0 regex engine) is no longer part of the skill pipeline. Its rewrites can split clauses into fragments, glue words together, and drop list items, so the skill now checks the LLM's output instead of rewriting it. The file and its tests remain in the repo.
 
 ---
 
@@ -77,7 +86,9 @@ We benchmarked this system against **ZeroGPT** using an identical 1,037-word aca
 | `benchmarks/04_breakthrough...` | Micro-Punch Cadence Balancing | 587w | **2.9%** | **Target Achieved**: 2.9% AI on ZeroGPT. |
 | `benchmarks/05_user_phase1...` | User Raw Phase 1 Test Run | 686w | **70.5%** | Exposed Staccato Flaw: uniform 7w sentences flag AI. |
 | `benchmarks/06_full_1000w...` | Full-Length Test with Fluff Intro | 980w | **62.0%** | Fluff intro flagged 90% yellow; lab data 100% white. |
-| `benchmarks/07_master_empir...`| True Empirical Metric Expansion | 952w | **Target <10%** | Reached 952w via real sintering & beamline physics. |
+| `benchmarks/07_master_empir...`| Parameter Expansion | 952w | **Not scored** | Reached 952w by adding sintering & beamline values that are not in the source (28 unsourced numbers). |
+
+> **Fidelity note:** Benchmarks 02–04, 06 and 07 contain values that are not in the baseline source, such as 3,860 mAh g⁻¹, 6.5 MPa and 98% density. Benchmark 07 has 28 unsourced numbers in total (sintering, beamline and cycling figures). They are kept as historical records. Run `python3 skills/academic-humanizer/scripts/check_draft.py benchmarks/00_baseline_raw_1037w_100pct_ai.txt <benchmark>` to list them.
 
 ---
 
@@ -85,14 +96,14 @@ We benchmarked this system against **ZeroGPT** using an identical 1,037-word aca
 
 1. **The Zero-Truncation Law**: Words must never be deleted; long sentences must be unpacked into multiple active sentences ($16\text{w} + 14\text{w} + 4\text{w}$).
 2. **The Pacing Law (Burstiness Enforcer)**: Sentence lengths must alternate between 12–16 words and 3–5 word micro-punches (*"Short circuits follow."*, *"That assumption fails."*). Sentence length burstiness coefficient must satisfy $B_L > 0.45$.
-3. **The Anti-Triad Law**: Symmetrical lists of three ($A, B, \text{ and } C$) are the #1 tell of autoregressive beam search; always collapse to binary pairs ($A \text{ and } B$).
+3. **The Anti-Triad Law**: Symmetrical lists of three ($A, B, \text{ and } C$) are the #1 tell of autoregressive beam search; break the rhythm by splitting items across sentences, never by dropping an item.
 4. **The Semicolon & Colon Ban**: Semicolons and colons in machine text correlate with compound sprawl; replace with discrete periods and capitalized new sentences.
 5. **The Participial Tail Decoupler**: Participial extensions (`, cutting active contact...`, `, raising the threshold...`) must be decoupled into active statements (`. This cut active contact...`, `. This raised the threshold...`).
 6. **The Clause Inversion Law**: Canonical Subject-Verb-Object openings (*"Solid-state batteries deliver..."*) must be inverted using prepositional or adverbial clauses (*"Compared to liquid cells, solid-state batteries deliver..."*).
-7. **The Anti-Preaching / Policy Jargon Scrubber**: Prescriptive concluding mandates (*"must deploy"*, *"is paramount for"*, *"hinges on"*, *"balanced synergy"*) must be replaced with physical laboratory mechanisms.
+7. **The Anti-Preaching / Policy Jargon Scrubber**: Prescriptive concluding mandates (*"must deploy"*, *"is paramount for"*, *"hinges on"*, *"balanced synergy"*) must be replaced with what the results actually show.
 8. **The Anti-Parallelism Law**: Consecutive parallel syntactic structures (*"X nucleates during Y. Z propagates during W."*) must be broken by inverting adjacent clauses.
 9. **The No-Background-Fluff Law**: Introductory paragraphs must NEVER open with thematic fluff (*"As the demand for energy accelerates globally..."*); begin immediately with concrete physical failure modes.
-10. **The Empirical Domain Anchor Law**: Expand length using high-entropy technical parameters (beamline energies, sintering schedules, yield strengths, overpotentials), which natural language classifiers cannot flag as synthetic.
+10. **The Empirical Domain Anchor Law**: Expand length using high-entropy technical parameters (beamline energies, sintering schedules, yield strengths, overpotentials), which natural language classifiers cannot flag as synthetic. These parameters must come from the source or the author's fact sheet ([template](skills/academic-humanizer/fact_sheet_template.md)), never from the model. The checker fails any number found in neither.
 
 ---
 
@@ -105,29 +116,33 @@ git clone https://github.com/lifeknife10A/humanizer-ai.git
 cd humanizer-ai
 ```
 
-### 2. Process an Academic File
+### 2. Run the Skill
+Install `skills/academic-humanizer/` in your agent and invoke `/humanize` with the source text. If you have real details to add (parameters, instrument settings, results, citations), fill in a copy of [`fact_sheet_template.md`](skills/academic-humanizer/fact_sheet_template.md) and pass it along. Without a fact sheet, the skill adds no new detail and ends with a list of questions about what you could add.
+
+### 3. Run the Checker Directly
 ```bash
-# Clean an AI-generated text file
-python3 humanizer.py input_paper.txt -o cleaned_paper.txt --stats
+C=skills/academic-humanizer/scripts/check_draft.py
+
+# Fact ledger: every number, acronym and formula the draft may use
+python3 $C source.txt --facts facts.md
+
+# Check a draft (exit code 1 on any FAIL)
+python3 $C source.txt draft.txt --facts facts.md
+```
+Example output (benchmark 07 checked against the baseline, abridged):
+```text
+=== FACT CHECK ===
+Words: source 978, draft 952 (97.3% retention)
+Fact-sheet numbers used: none
+  FAIL  new-number: "1150" is not in the source or fact sheet  [draft ¶3 s4]
+        "Spark plasma sintering densified pellets at 1150 °C under 50 MPa uniaxial pressure for fifteen minutes."
+  FAIL  missing-number: "3" from the source is missing from the draft  [source ¶4 s3]
+  WARN  new-term: "LLZTO" is not in the source or fact sheet  [draft ¶3 s3]
+...
+RESULT: FAIL (31 failures, 11 warnings)
 ```
 
-### 3. Run Forensic Quality Audit
-```bash
-python3 humanizer.py input_paper.txt --stats
-```
-Example Output:
-```text
-=== FORENSIC QUALITY AUDIT ===
-Original Words:    952
-Processed Words:   952 (100.0% retention)
-Total Sentences:   98
-Micro-Punches (<=5w): 18
-Max Sentence Len:  17 words
-Avg Sentence Len:  9.7 words
-Remaining Triads:  0
-Semicolons/Colons: 0 / 0
-==============================
-```
+The v5.0.0 regex engine still runs on its own (`python3 humanizer.py input.txt --stats`), but the skill no longer uses it.
 
 ### 4. Run Unit Tests
 ```bash
@@ -141,7 +156,9 @@ python3 -m unittest discover -s tests
 - **[MATHEMATICS.md](MATHEMATICS.md)**: Mathematical formulations of Cross-Entropy Loss, Perplexity, Burstiness ($B = \sigma / \mu$), Zipf's Law, and Syntactic Tree Positional Entropy.
 - **[CHALLENGES.md](CHALLENGES.md)**: In-depth engineering post-mortem of all failures (The Truncation Trap, The Staccato Flaw, The Generic Fluff Trap) and current technical bottlenecks.
 - **[AGENT_GUIDE.md](AGENT_GUIDE.md)**: Developer & AI Agent onboarding guide for contributing to AST-based dependency parsing and automated burstiness synthesis.
-- **[SKILL.md](skills/academic-humanizer/SKILL.md)**: The production LLM prompt specification and few-shot rules for Phase 1 execution.
+- **[SKILL.md](skills/academic-humanizer/SKILL.md)**: The skill: inputs, procedure, hard constraints, style rules and examples for Phases 1–3.
+- **[fact_sheet_template.md](skills/academic-humanizer/fact_sheet_template.md)**: Template for the author's fact sheet, the only allowed source of added specifics.
+- **[check_draft.py](skills/academic-humanizer/scripts/check_draft.py)**: The Phase 2 checker (fact ledger, fact checks, style checks).
 
 ---
 

@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""
+Unit Test Suite for the Phase 2 Draft Checker (v6.0.0)
+Validates fact extraction, fact-sheet enforcement, and style warnings.
+"""
+
+import unittest
+import subprocess
+import sys
+import os
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+SCRIPTS = os.path.join(ROOT, 'skills', 'academic-humanizer', 'scripts')
+sys.path.insert(0, SCRIPTS)
+from check_draft import (
+    extract_numbers,
+    extract_terms,
+    read_fact_sheet,
+    segment,
+    check,
+)
+
+BASELINE = os.path.join(ROOT, 'benchmarks', '00_baseline_raw_1037w_100pct_ai.txt')
+BREAKTHROUGH = os.path.join(ROOT, 'benchmarks', '04_breakthrough_pass_587w_2_9pct_ai.txt')
+MASTER = os.path.join(ROOT, 'benchmarks', '07_master_empirical_untruncated_952w.txt')
+
+SOURCE = "Cells cycled at 1.0 mA cm⁻² for fifty cycles. Pellets were made by spark plasma sintering."
+
+
+def kinds(result, level=None):
+    return [f['kind'] for f in result['findings'] if level is None or f['level'] == level]
+
+
+def read(path):
+    with open(path, encoding='utf-8') as f:
+        return f.read()
+
+
+class TestFactExtraction(unittest.TestCase):
+
+    def test_digit_and_word_numbers(self):
+        text = "After fifty cycles and three hundred hours, a five-nanometer layer held 3,860 mAh at 7.0 MPa for twenty-five days."
+        self.assertEqual(extract_numbers(text), {'50', '300', '5', '3860', '7', '25'})
+
+    def test_formula_and_unit_digits_ignored(self):
+        text = "Li6.4La3Zr1.4Ta0.6O12 and Li₂CO₃ in mA cm-2 with K_IC in MPa m^{1/2} and cm⁻²."
+        self.assertEqual(extract_numbers(text), set())
+
+    def test_lone_one_is_not_a_quantity(self):
+        self.assertEqual(extract_numbers("One of the cells failed."), set())
+        self.assertEqual(extract_numbers("One hundred cells failed."), {'100'})
+
+    def test_terms_are_acronyms_and_formulas(self):
+        text = "LLZTO pellets, Li₂CO₃, ToF-SIMS and X-ray scans at 50 MPa with K⁻¹ units."
+        self.assertEqual(extract_terms(text), {'LLZTO', 'Li₂CO₃', 'ToF', 'SIMS'})
+
+    def test_fact_sheet_comments_and_headings_ignored(self):
+        sheet = "# Results 2024\n<!-- example: 25 °C -->\n- Cycling temperature: 30 °C"
+        self.assertEqual(extract_numbers(read_fact_sheet(sheet)), {'30'})
+
+    def test_abbreviations_do_not_split_sentences(self):
+        sentences = segment("Smith et al. (2021) measured it. See Fig. 2 for details. Done.")
+        self.assertEqual([s.text for s in sentences],
+                         ["Smith et al. (2021) measured it.", "See Fig. 2 for details.", "Done."])
+
+    def test_unpunctuated_single_line_is_heading(self):
+        sentences = segment("Extended Abstract: A Title\n\nBody text here.")
+        self.assertTrue(sentences[0].heading)
+        self.assertFalse(sentences[1].heading)
+
+
+class TestFactChecks(unittest.TestCase):
+
+    def test_invented_number_fails(self):
+        draft = "Cells cycled at 1.0 mA cm⁻² for fifty cycles at 25 °C. Pellets were made by spark plasma sintering."
+        result = check(SOURCE, draft)
+        self.assertFalse(result['passed'])
+        self.assertIn('new-number', kinds(result, 'FAIL'))
+
+    def test_fact_sheet_number_allowed(self):
+        draft = "Cells cycled at 1.0 mA cm⁻² for fifty cycles at 25 °C. Pellets were made by spark plasma sintering."
+        result = check(SOURCE, draft, facts="- Cycling temperature: 25 °C")
+        self.assertTrue(result['passed'])
+        self.assertEqual(result['fact_sheet_numbers_used'], ['25'])
+
+    def test_dropped_number_fails(self):
+        draft = "Cells cycled at 1.0 mA cm⁻² for many cycles. Pellets were made by spark plasma sintering."
+        result = check(SOURCE, draft)
+        self.assertIn('missing-number', kinds(result, 'FAIL'))
+
+    def test_digits_and_words_interchangeable(self):
+        draft = "Cells cycled at 1.0 mA cm⁻² for 50 cycles. Pellets were made by spark plasma sintering."
+        self.assertTrue(check(SOURCE, draft)['passed'])
+
+    def test_new_formula_warns_but_units_do_not(self):
+        source = "Lithium lanthanum zirconium tantalum oxide pellets held 7.0 megapascals."
+        draft = "Li₆.₄La₃Zr₁.₄Ta₀.₆O₁₂ pellets held 7.0 MPa of stack pressure here."
+        result = check(source, draft)
+        new_terms = [f['message'] for f in result['findings'] if f['kind'] == 'new-term']
+        self.assertEqual(len(new_terms), 1)
+        self.assertIn('Li₆.₄La₃Zr₁.₄Ta₀.₆O₁₂', new_terms[0])
+
+    def test_truncation_fails(self):
+        result = check(SOURCE, "Cells cycled at 1.0 mA cm⁻² for fifty cycles.")
+        self.assertIn('retention', kinds(result, 'FAIL'))
+
+
+class TestStyleChecks(unittest.TestCase):
+
+    def test_style_warnings(self):
+        draft = (
+            "Furthermore, the voltage dropped; the cell failed. "
+            "The reason is simple: voids grew. "
+            "The pellets, however, cracked under load. "
+            "The active boundary receded quickly, cutting contact area by half. "
+            "We measured roughness, fracture, and conductivity. "
+            "During cycling, voids grew. During cycling, voids grew."
+        )
+        found = kinds(check(draft, draft))
+        for kind in ('stock-phrase', 'semicolon', 'colon', 'however',
+                     'participial-tail', 'triad', 'duplicate', 'openings'):
+            self.assertIn(kind, found)
+
+    def test_prepositional_comma_is_not_a_tail(self):
+        draft = "Stack pressure stayed steady across all tests, during cycling and rest."
+        self.assertNotIn('participial-tail', kinds(check(draft, draft)))
+
+    def test_heading_colon_ignored(self):
+        draft = "Extended Abstract: A Title\n\nBody text stays short here."
+        self.assertNotIn('colon', kinds(check(draft, draft)))
+
+
+class TestBenchmarks(unittest.TestCase):
+
+    def test_master_benchmark_contains_unsourced_numbers(self):
+        result = check(read(BASELINE), read(MASTER))
+        invented = {f['message'].split('"')[1] for f in result['findings'] if f['kind'] == 'new-number'}
+        self.assertTrue({'1150', '84', '600', '86.4'} <= invented)
+
+    def test_breakthrough_benchmark_is_truncated(self):
+        result = check(read(BASELINE), read(BREAKTHROUGH))
+        self.assertIn('retention', kinds(result, 'FAIL'))
+
+    def test_cli_exit_codes(self):
+        script = os.path.join(SCRIPTS, 'check_draft.py')
+        run = lambda *args: subprocess.run([sys.executable, script, *args], capture_output=True, text=True)
+        self.assertEqual(run(BASELINE, BASELINE).returncode, 0)
+        self.assertEqual(run(BASELINE, MASTER).returncode, 1)
+        ledger = run(BASELINE)
+        self.assertEqual(ledger.returncode, 0)
+        self.assertIn('FACT LEDGER', ledger.stdout)
+
+
+if __name__ == '__main__':
+    unittest.main()

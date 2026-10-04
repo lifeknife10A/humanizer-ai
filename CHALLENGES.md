@@ -90,6 +90,9 @@ We conducted an empirical benchmark on a 1,037-word academic extended abstract o
   
   **Detectors cannot flag concrete laboratory parameters because domain constants have high localized entropy.**
 
+- **Correction (v6.0.0)**:
+  None of the parameters above appear in the baseline abstract. They were generated during the rewrite, so benchmark 07 reached full length by inventing data, which breaks the Zero-Hallucination Law. The expansion idea still holds, but only for values the author supplies. v6.0.0 adds a fact sheet as the only allowed source of added specifics, and `check_draft.py` fails any number found in neither the source nor the fact sheet. Run against the baseline, it flags 28 unsourced numbers in benchmark 07.
+
 ---
 
 ## 4. Current Technical Bottlenecks (Why 1-Pass is Unsolved)
