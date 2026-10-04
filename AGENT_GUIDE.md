@@ -19,7 +19,9 @@ humanizer-ai/
 │       ├── SKILL.md                  # The skill: procedure, hard constraints, style rules
 │       ├── fact_sheet_template.md    # Author fact sheet: the only source of added specifics
 │       └── scripts/
-│           └── check_draft.py        # Phase 2 checker (fact ledger, fact & style checks)
+│           ├── check_draft.py        # Phase 2 checker (fact ledger, fact & style checks)
+│           ├── flagged_runs.py       # Phase 4: group detector highlights into runs, emit runs file
+│           └── apply_runs.py         # Phase 4: splice rewritten runs back, then check
 ├── benchmarks/             # Historical test cases with exact ZeroGPT scores
 │   ├── 00_baseline_raw_1037w_100pct_ai.txt
 │   ├── 01_gemini_pass_640w_63pct_ai.txt
@@ -31,7 +33,9 @@ humanizer-ai/
 │   └── 07_master_empirical_untruncated_952w.txt
 └── tests/
     ├── test_humanizer.py   # Tests for the v5.0.0 regex engine
-    └── test_check_draft.py # Tests for the Phase 2 checker
+    ├── test_check_draft.py # Tests for the Phase 2 checker
+    ├── test_flagged_runs.py # Tests for the Phase 4 run grouping
+    └── test_apply_runs.py  # Tests for the Phase 4 splicer
 ```
 
 ---

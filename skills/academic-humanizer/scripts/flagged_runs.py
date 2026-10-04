@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.0.0)
+Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.1.0)
 
 Groups the sentences a detector highlighted (e.g. ZeroGPT's yellow spans)
 into runs, so they can be rewritten as units. Detectors such as ZeroGPT
@@ -13,7 +13,11 @@ the whole sentence or just its opening words; matching is by prefix, ignoring
 case, spacing and punctuation.
 
 Usage:
-  flagged_runs.py DRAFT FLAGGED [--gap 1]
+  flagged_runs.py DRAFT FLAGGED [--gap 1] [--emit runs.txt]
+
+With --emit, it also writes a runs file: one block per run with the run's
+ORIGINAL text and an empty REWRITE slot. Fill in the REWRITE slots and splice
+them back with apply_runs.py, which leaves every other sentence untouched.
 """
 
 import argparse
@@ -65,6 +69,34 @@ def find_runs(sentences, flags, gap=1):
     return runs
 
 
+RUNS_FILE_HEADER = """# Phase 4 runs file.
+# Write each run's rewrite on the lines under its REWRITE: line.
+# Leave a REWRITE empty to keep that run as it is.
+# Do not edit ORIGINAL blocks: apply_runs.py uses them to find each run in the draft.
+# CONTEXT lines are for reading only; those sentences are not changed.
+"""
+
+
+def runs_file(draft, flagged_lines, gap=1):
+    """Builds the fill-in runs file for apply_runs.py."""
+    sentences = [s for s in segment(draft) if not s.heading]
+    flags, _ = match_flags(sentences, flagged_lines)
+    blocks = [RUNS_FILE_HEADER]
+    for n, run in enumerate(find_runs(sentences, flags, gap), 1):
+        first, last = run[0], run[-1]
+        para = sentences[first].para
+        blocks.append(f'=== RUN {n} ===')
+        if first > 0 and sentences[first - 1].para == para:
+            blocks.append(f'CONTEXT BEFORE: {sentences[first - 1].text}')
+        blocks.append('ORIGINAL:')
+        blocks.append(' '.join(sentences[i].text for i in run))
+        if last + 1 < len(sentences) and sentences[last + 1].para == para:
+            blocks.append(f'CONTEXT AFTER: {sentences[last + 1].text}')
+        blocks.append('REWRITE:')
+        blocks.append('')
+    return '\n'.join(blocks) + '\n'
+
+
 def report(draft, flagged_lines, gap=1):
     sentences = [s for s in segment(draft) if not s.heading]
     flags, unmatched = match_flags(sentences, flagged_lines)
@@ -98,16 +130,21 @@ def report(draft, flagged_lines, gap=1):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.0.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.1.0)')
     parser.add_argument('draft', help='The draft that was scanned')
     parser.add_argument('flagged', help='File with one highlighted sentence (or its opening words) per line')
     parser.add_argument('--gap', type=int, default=1, help='Unflagged sentences to bridge inside a run (default 1)')
+    parser.add_argument('--emit', metavar='RUNS_FILE', help='Also write a fill-in runs file for apply_runs.py')
     args = parser.parse_args(argv)
     with open(args.draft, encoding='utf-8') as f:
         draft = f.read()
     with open(args.flagged, encoding='utf-8') as f:
         flagged = [line.strip() for line in f if line.strip()]
     print(report(draft, flagged, args.gap))
+    if args.emit:
+        with open(args.emit, 'w', encoding='utf-8') as f:
+            f.write(runs_file(draft, flagged, args.gap))
+        print(f'Runs file written to {args.emit}. Fill in each REWRITE, then run apply_runs.py.')
     return 0
 
 

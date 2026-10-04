@@ -1,8 +1,8 @@
 ---
 name: academic-humanizer
-description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Use when asked to humanize, de-AI, or rewrite academic text."
+description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
 metadata:
-  version: "7.0.0"
+  version: "7.1.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,11 +14,11 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.0.0)
+# Academic Humanizer (v7.1.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
-The work happens in three phases. You rewrite the text and reread it against the source (Phase 1). `scripts/check_draft.py` compares your rewrite with the source and fact sheet (Phase 2). You revise what it flags (Phase 3). Nothing rewrites your text after you.
+The work happens in four phases. You rewrite the text and reread it against the source (Phase 1). `scripts/check_draft.py` compares your rewrite with the source and fact sheet (Phase 2). You revise what it flags (Phase 3). After the user scans the result, you rewrite only the sentences the detector highlighted (Phase 4), using `flagged_runs.py` and `apply_runs.py`.
 
 ## Inputs
 
@@ -84,23 +84,38 @@ If you can't run Python, do steps 2 and 5 by hand. List every number, acronym, a
 
 ## Phase 4: Detector feedback (for scores under 10%)
 
-Steps 1–7 are one pass, and on our tests a single pass lands around 27–35% on ZeroGPT. On the same abstract, two feedback rounds took it from 27.2% to 5.3% with all facts intact. Local proxies can't predict which sentences ZeroGPT will flag (see `research/ZEROGPT_LABEL_STUDY.md` in the repo), so getting under 10% takes the detector's own feedback. Offer this phase at delivery. Run it when the user returns with a scan.
+A single pass (steps 1–7) lands around 27–35% on ZeroGPT in our tests. Nothing you can compute locally predicts which sentences ZeroGPT will flag. Perplexity, token rank, Binoculars-style scores and style features all came out at or near chance on 600 labelled sentences (`research/ZEROGPT_LABEL_STUDY.md`). So going under 10% needs the detector's own feedback. On our test abstract, two feedback rounds took the score from 27.2% to 13.9% to 5.3%, with every fact intact.
 
-1. **Get the highlights.** Ask the user to scan the delivered text and paste the highlighted (yellow) sentences, one per line, or send screenshots. If they send screenshots, transcribe each highlighted sentence's opening words into `flagged.txt`, one per line. Save the scanned text as `draft.txt` if it isn't already.
-2. **Group them into runs.**
+What the data showed, and what this procedure relies on:
+- **The score is roughly the highlighted share.** ZeroGPT's percentage is close to the share of words in highlighted sentences, so each round's target can be counted.
+- **Highlights come in runs.** A sentence right after a highlighted one is highlighted about two thirds of the time, against about one in ten otherwise. The detector judges sentences in context, so a run is rewritten as one unit.
+- **Unhighlighted sentences must stay word for word.** They already passed, and rewriting them risks new highlights.
+- **Neighbours can still flip.** A kept sentence may become highlighted after the run next to it changes. It then belongs to the next round's runs.
+- **The opening framing is the hardest part.** The first few sentences of an abstract were highlighted in every round. The title is always highlighted; titles stay unchanged, and it usually costs one or two points.
+
+Offer this phase at delivery. Run it when the user comes back with a scan. **Never retype the whole document in this phase.** Write only the rewrites, and let `apply_runs.py` splice them in.
+
+1. **Save the scan.** Save the exact text the user scanned as `draft.txt` (the previous round's output). Put the highlighted sentences in `flagged.txt`, one per line; each line can be just the sentence's opening words. If the user sends screenshots, transcribe the opening words of every highlighted sentence.
+2. **Make the runs file.**
    ```bash
-   python3 SKILL_DIR/scripts/flagged_runs.py draft.txt flagged.txt
+   python3 SKILL_DIR/scripts/flagged_runs.py draft.txt flagged.txt --emit runs.txt
    ```
-   It reports the estimated score (ZeroGPT's percentage tracks the highlighted share of words) and the runs: consecutive highlighted sentences, with one unhighlighted sentence bridged.
-3. **Rewrite each run as a unit.** Highlights come in runs because the detector scores windows, so rewriting one sentence of a run rarely clears it.
-   - Change only run sentences. Every unhighlighted sentence passed, so leave it word for word.
-   - Restructure the run instead of polishing it. Reorder its claims, change grammatical subjects, merge or split sentences across the run, and connect sentences to each other ("whereas", "because", relative clauses) rather than writing standalone declaratives.
-   - Prefer the authors' actions to abstract nouns ("We sorted the attacks into four groups" over "The framework categorizes attacks"), and keep the 16-word cap. On our test abstract, one round in this style took ZeroGPT from 27.2% to 13.9%, while longer connected sentences only reached 19.5%.
-   - Expect neighbours to shift. A sentence you kept can become highlighted after its run changes, because the detector scores windows. Include it in the next round's runs.
-   - All hard constraints still apply. Restructuring is not permission to add claims.
-4. **Make two variants when the user is willing to scan twice.** Both follow step 3 but differ in one choice, for example the authors' voice against predicate-fronted sentences ("Getting past safety mechanisms is the aim of jailbreaks"). Continue with whichever scans lower.
-5. **Check every variant** with `check_draft.py` against the original source (not the previous draft), then deliver it for the next scan.
-6. **Stop** when the score is under 10%, after three feedback rounds, or when a round doesn't lower the score. Report the score history.
+   It prints the estimated score and writes `runs.txt`, with one block per run: the run's ORIGINAL text, its context sentences, and an empty REWRITE slot. If it lists flagged lines that matched no sentence, fix those lines in `flagged.txt` and run it again.
+3. **Write the rewrites into `runs.txt`.** Fill in each REWRITE slot and leave ORIGINAL and CONTEXT lines untouched. Each rewrite replaces the whole run, so it must carry every claim, number, hedge and list item of that run's ORIGINAL (H1–H5 still apply). How to rewrite a run, in the style that won on our test:
+   - **Write in the authors' voice, around what was done:** "We put the adversarial robustness of contemporary LLMs to an empirical test" rather than "This paper presents an empirical investigation into…".
+   - **Restructure, don't polish.** Change grammatical subjects, reorder the run's claims, and split or merge sentences inside the run. Swapping synonyms into the same sentence shape doesn't clear a run.
+   - **Keep sentences at 16 words or fewer, and mix in short ones.** Longer connected sentences scored worse (19.5% against 13.9%).
+   - **Prefer plain verbs and concrete phrasing to abstract nouns:** "Multi-turn exploitation plays a longer game. Its adversarial effects pile up across the conversation history."
+   - **Leading with the point also works:** "Getting past safety mechanisms is the aim of jailbreaks." It scored the same as the authors' voice in round 3.
+   - **Read the CONTEXT lines** so the rewrite still connects to the sentences around it.
+4. **Splice and check.**
+   ```bash
+   python3 SKILL_DIR/scripts/apply_runs.py draft.txt runs.txt -o draft_next.txt --source source.txt --facts facts.md
+   ```
+   Drop `--facts facts.md` when there's no fact sheet. It replaces only the runs, copies everything else unchanged, and checks the result against the original source, never the previous draft. Fix any failure in `runs.txt` and run it again. If it says a run's ORIGINAL wasn't found, the runs file was edited outside a REWRITE slot; regenerate it in step 2.
+5. **Optional second variant.** If the user is willing to scan twice, copy `runs.txt` to `runs_b.txt`, fill it with a different rewrite of the same runs, and splice it to `draft_next_b.txt`. Continue with whichever scans lower.
+6. **Deliver** `draft_next.txt` (and the variant, if any), the checker report, and the estimated score. Ask for the next scan.
+7. **Stop** when the score is under 10%, after three feedback rounds, or when a round doesn't lower the score. Report the score history, round by round.
 
 ## Hard constraints
 
@@ -140,6 +155,7 @@ Apply these within the hard constraints. When a style rule and a hard constraint
 - **S7. Tails and "however".** Split ", cutting X..." into ". This cut X...". Rewrite "X, however, Y" as "Yet X Y" or as two sentences.
 - **S8. Stock phrasing.** Cut: Furthermore, Moreover, Additionally, Notably, Ultimately, In conclusion, In summary, In short, It is important/crucial to note, pivotal, vital role, integral role, tapestry, delve into, testament, paramount, transformative potential, the landscape of, cornerstone, synergy, holistic, and "To address these challenges, we...". When the phrase carries meaning, keep the meaning in plain words: "the transformative potential of X" becomes "how X could transform...".
 - **S9. Conclusions.** Rewrite mandates ("must deploy", "is paramount for", "is vital to", "hinges on") as plain recommendations ("should", "we recommend"). These are recommendations, not findings, so H3's hedging rule doesn't apply to them. Don't turn a stated dependency ("success depends on X") into a recommendation, and don't add a mechanism the source doesn't describe.
+- **S10. Authors' voice.** Where the source describes the authors' own work, prefer what they did over abstract nouns ("We sorted the attacks into four groups" over "The framework categorizes attacks into four dimensions"). This is the style that cleared the most highlighted runs in Phase 4.
 
 ## Examples
 
