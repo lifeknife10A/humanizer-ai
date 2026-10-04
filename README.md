@@ -101,7 +101,7 @@ We benchmarked this system against **ZeroGPT** using an identical 1,037-word aca
 ### 1. Installation
 Clone the repository:
 ```bash
-git clone https://github.com/krish/humanizer-ai.git
+git clone https://github.com/lifeknife10A/humanizer-ai.git
 cd humanizer-ai
 ```
 
