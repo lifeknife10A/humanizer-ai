@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 2 Draft Checker (v6.0.0)
+Academic Humanizer: Phase 2 Draft Checker (v6.1.0)
 
 Compares a rewritten draft against its source text and an optional
 author-supplied fact sheet. It reports problems; it never rewrites text.
@@ -11,12 +11,15 @@ Fact checks (FAIL, exit code 1):
   - word retention below --min-retention
 
 Fact checks (WARN):
-  - acronyms or formulas in the draft that are in neither the source nor the fact sheet
+  - acronyms or formulas in the draft that are in neither the source nor the
+    fact sheet, unless defined in the draft as "full term (ACRONYM)"
   - word retention above --max-retention
 
 Style checks (WARN): sentences over --max-words, semicolons, reveal colons,
 stock AI phrases, mid-sentence ", however,", participial tails, three-item
-lists, duplicate sentences, and runs of sentences opening with the same word.
+lists, duplicate sentences, runs of sentences opening with the same word,
+too few short sentences (below --min-short), and overused add-on sentences
+("C too.", "C as well.", "also").
 
 Usage:
   check_draft.py SOURCE [--facts FACTS]          print the fact ledger
@@ -86,6 +89,13 @@ NOT_PARTICIPLES = {
 TRIAD = re.compile(r',\s[^,;:.]{1,50},\s(?:and|or)\s')
 MID_HOWEVER = re.compile(r',\s*however\s*,', re.IGNORECASE)
 REVEAL_COLON = re.compile(r':\s')
+# "A and B. C too." is what splitting a three-item list tends to produce.
+ADD_ON_ENDING = re.compile(r'\b(?:too|as well|alongside (?:it|them)|the same (?:effect|treatment))[.!?]$', re.IGNORECASE)
+ALSO = re.compile(r'\balso\b', re.IGNORECASE)
+MAX_ADD_ON_ENDINGS = 2
+MAX_ALSO_SHARE = 0.06
+ACRONYM_DEFINITION = re.compile(r'\(([A-Za-z][A-Za-z-]{1,15})\)')
+ACRONYM_STOPWORDS = {'of', 'and', 'the', 'for', 'in', 'on', 'to', 'a', 'an', 'by', 'with'}
 
 Sentence = namedtuple('Sentence', 'para index text heading')
 
@@ -145,6 +155,22 @@ def extract_terms(text):
     return terms
 
 
+def defined_acronyms(text):
+    """Returns acronyms defined in text as "full term (ACRONYM)", where the capitals match the term's initials."""
+    defined = set()
+    for m in ACRONYM_DEFINITION.finditer(text):
+        acronym = m.group(1)
+        letters = [c.lower() for c in acronym if c.isupper()]
+        if len(letters) < 2:
+            continue
+        # Whole words only, so the element symbols inside a formula never spell out an acronym.
+        words = [w for w in re.findall(r'\b[A-Za-z]+\b', text[:m.start()])[-15:]
+                 if w.lower() not in ACRONYM_STOPWORDS]
+        if len(words) >= len(letters) and [w[0].lower() for w in words[-len(letters):]] == letters:
+            defined |= extract_terms(acronym)
+    return defined
+
+
 def read_fact_sheet(text):
     """Drops HTML comments and markdown headings so template guidance never counts as a fact."""
     text = re.sub(r'<!--.*?-->', '', text, flags=re.DOTALL)
@@ -179,13 +205,13 @@ def _sort_numbers(numbers):
     return sorted(numbers, key=float)
 
 
-def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_words=16):
+def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_words=16, min_short=15.0):
     """Checks a draft against its source and fact sheet. Returns findings and stats."""
     facts = read_fact_sheet(facts)
     source_numbers = _text_numbers(source)
     fact_numbers = _text_numbers(facts)
     allowed_numbers = source_numbers | fact_numbers
-    allowed_terms = extract_terms(source) | extract_terms(facts)
+    allowed_terms = extract_terms(source) | extract_terms(facts) | defined_acronyms(draft)
 
     findings = []
 
@@ -215,7 +241,10 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
     if retention < min_retention:
         add('FAIL', 'retention', f'draft keeps {retention:.1f}% of source words (minimum {min_retention:g}%)')
     elif retention > max_retention:
-        add('WARN', 'retention', f'draft is {retention:.1f}% of source length (maximum {max_retention:g}%)')
+        from_facts = bool((draft_numbers & fact_numbers) - source_numbers)
+        note = ('; fact-sheet details were added, so leave it and tell the author in case of a word limit'
+                if from_facts else '; cut filler words and merge over-split fragments')
+        add('WARN', 'retention', f'draft is {retention:.1f}% of source length (maximum {max_retention:g}%){note}')
 
     prose = [s for s in draft_sentences if not s.heading]
     seen = set()
@@ -249,8 +278,22 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
         if run_length == 3:
             add('WARN', 'openings', f'third sentence in a row starting with "{words[0]}"', s)
 
+    add_on_endings = [s for s in prose if ADD_ON_ENDING.search(s.text)]
+    if len(add_on_endings) > MAX_ADD_ON_ENDINGS:
+        for s in add_on_endings:
+            add('WARN', 'add-on', f'{len(add_on_endings)} sentences end in "too"/"as well"-style add-ons '
+                f'(maximum {MAX_ADD_ON_ENDINGS}); integrate the item instead', s)
+    also_sentences = [s for s in prose if ALSO.search(s.text)]
+    if len(also_sentences) > max(3, MAX_ALSO_SHARE * len(prose)):
+        add('WARN', 'add-on', f'"also" appears in {len(also_sentences)} of {len(prose)} sentences; '
+            'vary how items are connected')
+
     lengths = [len(s.text.split()) for s in prose]
     mean = statistics.mean(lengths) if lengths else 0.0
+    short_share = sum(l <= 5 for l in lengths) / len(lengths) * 100 if lengths else 0.0
+    if len(lengths) >= 10 and short_share < min_short:
+        add('WARN', 'short-sentences', f'only {short_share:.1f}% of sentences have 5 words or fewer '
+            f'(minimum {min_short:g}%); split a specific point into a short sentence')
     stats = {
         'source_words': source_words,
         'draft_words': draft_words,
@@ -258,7 +301,7 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
         'sentences': len(lengths),
         'mean_length': round(mean, 1),
         'max_length': max(lengths) if lengths else 0,
-        'short_share': round(sum(l <= 5 for l in lengths) / len(lengths) * 100, 1) if lengths else 0.0,
+        'short_share': round(short_share, 1),
         'length_burstiness': round(statistics.stdev(lengths) / mean, 2) if len(lengths) > 1 and mean else 0.0,
     }
     return {
@@ -327,7 +370,9 @@ def format_ledger(source, facts=''):
         '  ' + (', '.join(sorted(source_terms)) or 'none'),
         'Acronyms and formulas from the fact sheet (may be added):',
         '  ' + (', '.join(sorted(fact_terms)) or 'none'),
-        'No other number, acronym or formula may appear in the draft.',
+        'Numbers are normalized: "7.0" is listed as 7, "fifty" as 50, "3,860" as 3860.',
+        'No other number, acronym or formula may appear in the draft, except an acronym',
+        'you define at first use for a term the source spells out: "full term (ACRONYM)".',
     ])
 
 
@@ -337,13 +382,14 @@ def _read(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v6.0.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v6.1.0)')
     parser.add_argument('source', help='Original text file')
     parser.add_argument('draft', nargs='?', help='Rewritten draft (omit to print the fact ledger)')
     parser.add_argument('--facts', help='Author-supplied fact sheet')
     parser.add_argument('--min-retention', type=float, default=95.0, help='Minimum draft/source word ratio, %% (default 95)')
     parser.add_argument('--max-retention', type=float, default=110.0, help='Warn above this word ratio, %% (default 110)')
     parser.add_argument('--max-words', type=int, default=16, help='Warn on sentences longer than this (default 16)')
+    parser.add_argument('--min-short', type=float, default=15.0, help='Warn if fewer than this %% of sentences have <=5 words (default 15)')
     args = parser.parse_args(argv)
 
     source = _read(args.source)
@@ -352,7 +398,7 @@ def main(argv=None):
         print(format_ledger(source, facts))
         return 0
 
-    result = check(source, _read(args.draft), facts, args.min_retention, args.max_retention, args.max_words)
+    result = check(source, _read(args.draft), facts, args.min_retention, args.max_retention, args.max_words, args.min_short)
     print(format_report(result))
     return 0 if result['passed'] else 1
 

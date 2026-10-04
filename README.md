@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9+-green.svg)](https://python.org)
-[![Tests: Passing](https://img.shields.io/badge/Tests-27%20Passing-brightgreen.svg)](tests/)
+[![Tests: Passing](https://img.shields.io/badge/Tests-33%20Passing-brightgreen.svg)](tests/)
 [![ZeroGPT Target: <10%](https://img.shields.io/badge/ZeroGPT-2.9%25%20Achieved-success.svg)](benchmarks/)
 
 **Humanizer-AI** is an empirically validated, open-source pipeline designed to transform AI-generated academic papers, theses, and technical reports into authentic scholarship that reliably scores **< 10% AI (or 0%)** on ZeroGPT, Turnitin, and GPTZero in **a single turnkey iteration** while strictly preserving full manuscript length and factual accuracy.
@@ -22,7 +22,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 
 ---
 
-## System Architecture: Fact-Sheet Pipeline (v6.0.0)
+## System Architecture: Fact-Sheet Pipeline (v6.1.0)
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
@@ -40,9 +40,9 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 └────────────────────────────────┬────────────────────────────────┘
                                  ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ Phase 1: LLM rewrite (skills/academic-humanizer/SKILL.md)       │
+│ Phase 1: LLM rewrite + fidelity reread (SKILL.md)               │
 │ • Hard constraints first: no new or dropped numbers, terms,     │
-│   claims or list items; ≥95% length without padding            │
+│   claims or list items; 95–110% length, no padding              │
 │ • Then style: unpacking, short sentences, varied openings,      │
 │   no stock phrases, semicolons, tails or three-item rhythm      │
 └────────────────────────────────┬────────────────────────────────┘
@@ -51,12 +51,13 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 │ Phase 2: Deterministic checker (check_draft.py SOURCE DRAFT)    │◄─┐
 │ • FAIL: invented number, dropped number, retention < 95%        │  │
 │ • WARN: new acronym/formula, long sentence, stock phrase,       │  │
-│   semicolon, colon, tail, triad, duplicate, repeated opening    │  │
+│   semicolon, colon, tail, triad, duplicate, repeated opening,   │  │
+│   too few short sentences, "too"/"also" add-ons                 │  │
 │ • Reports only. It never rewrites text.                         │  │
 └────────────────────────────────┬────────────────────────────────┘  │
                                  ▼                                   │
 ┌─────────────────────────────────────────────────────────────────┐  │
-│ Phase 3: LLM revises only the flagged sentences (max 2 rounds)  │──┘
+│ Phase 3: LLM fixes what was flagged (max 2 rounds)              │──┘
 └────────────────────────────────┬────────────────────────────────┘
                                  ▼
 ┌─────────────────────────────────────────────────────────────────┐

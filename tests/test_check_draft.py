@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 2 Draft Checker (v6.0.0)
+Unit Test Suite for the Phase 2 Draft Checker (v6.1.0)
 Validates fact extraction, fact-sheet enforcement, and style warnings.
 """
 
@@ -16,6 +16,7 @@ from check_draft import (
     extract_numbers,
     extract_terms,
     read_fact_sheet,
+    defined_acronyms,
     segment,
     check,
 )
@@ -53,6 +54,15 @@ class TestFactExtraction(unittest.TestCase):
     def test_terms_are_acronyms_and_formulas(self):
         text = "LLZTO pellets, Li₂CO₃, ToF-SIMS and X-ray scans at 50 MPa with K⁻¹ units."
         self.assertEqual(extract_terms(text), {'LLZTO', 'Li₂CO₃', 'ToF', 'SIMS'})
+
+    def test_acronyms_defined_at_first_use(self):
+        text = ("We used electrochemical impedance spectroscopy (EIS) and time-of-flight secondary "
+                "ion mass spectrometry (ToF-SIMS) on dense ceramic pellets (LLZTO).")
+        self.assertEqual(defined_acronyms(text), {'EIS', 'ToF', 'SIMS'})
+
+    def test_formula_does_not_define_acronym(self):
+        self.assertEqual(defined_acronyms("dense ceramic Li₆.₄La₃Zr₁.₄Ta₀.₆O₁₂ (LLZTO) pellets"), set())
+        self.assertEqual(defined_acronyms("dense ceramic Li6.4La3Zr1.4Ta0.6O12 (LLZTO) pellets"), set())
 
     def test_fact_sheet_comments_and_headings_ignored(self):
         sheet = "# Results 2024\n<!-- example: 25 °C -->\n- Cycling temperature: 30 °C"
@@ -100,6 +110,18 @@ class TestFactChecks(unittest.TestCase):
         self.assertEqual(len(new_terms), 1)
         self.assertIn('Li₆.₄La₃Zr₁.₄Ta₀.₆O₁₂', new_terms[0])
 
+    def test_defined_abbreviation_is_not_a_new_term(self):
+        source = "Electrochemical impedance spectroscopy tracked resistance growth over time."
+        draft = "Electrochemical impedance spectroscopy (EIS) tracked resistance growth. EIS ran over time."
+        self.assertNotIn('new-term', kinds(check(source, draft)))
+
+    def test_long_draft_note_depends_on_fact_sheet(self):
+        source = "Pellets were sintered."
+        padded = check(source, "The pellets were sintered in the usual way.")
+        with_facts = check(source, "The pellets were sintered at 1150 °C.", facts="- 1150 °C")
+        self.assertIn('cut filler', padded['findings'][0]['message'])
+        self.assertIn('fact-sheet details were added', with_facts['findings'][0]['message'])
+
     def test_truncation_fails(self):
         result = check(SOURCE, "Cells cycled at 1.0 mA cm⁻² for fifty cycles.")
         self.assertIn('retention', kinds(result, 'FAIL'))
@@ -120,6 +142,20 @@ class TestStyleChecks(unittest.TestCase):
         for kind in ('stock-phrase', 'semicolon', 'colon', 'however',
                      'participial-tail', 'triad', 'duplicate', 'openings'):
             self.assertIn(kind, found)
+
+    def test_add_on_endings_over_limit(self):
+        draft = ("Voids form during stripping. Contact loss follows too. "
+                 "Dendrites grow during plating. Cracks spread as well. "
+                 "Resistance rises with cycling. Capacity fades alongside them.")
+        self.assertEqual(kinds(check(draft, draft)).count('add-on'), 3)
+        self.assertNotIn('add-on', kinds(check(draft, draft.replace(' as well.', '.'))))
+
+    def test_short_sentence_share(self):
+        medium = "Interfacial resistance rose steadily across the first fifty cycles of testing."
+        uniform = ' '.join([medium] * 10)
+        self.assertIn('short-sentences', kinds(check(uniform, uniform)))
+        varied = ' '.join([medium] * 8 + ["Resistance tripled.", "Coated cells survived."])
+        self.assertNotIn('short-sentences', kinds(check(varied, varied)))
 
     def test_prepositional_comma_is_not_a_tail(self):
         draft = "Stack pressure stayed steady across all tests, during cycling and rest."
