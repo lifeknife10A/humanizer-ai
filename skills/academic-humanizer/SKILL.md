@@ -54,7 +54,7 @@ If no fact sheet was given, don't stop to ask for one. Work from the source alon
    ```bash
    python3 SKILL_DIR/scripts/check_draft.py source.txt draft.txt --facts facts.md
    ```
-6. **Revise (Phase 3).** Fix the sentences the report names. Some warnings cover the whole document (`retention`, `short-sentences`, `add-on` without a location); for those, change whichever sentences fix it best. Then run step 5 again. Stop after two revision rounds.
+6. **Revise (Phase 3).** Fix the sentences the report names. Some warnings cover the whole document (`retention`, `short-sentences`, `add-on` without a location); for those, change whichever sentences fix it best. Then run step 5 again. Run at most two revision rounds, each followed by a check.
    - `new-number` FAIL: delete the number, or go back to the source's wording. Never fix it by adding the number to the fact sheet yourself.
    - `missing-number` FAIL: restore the content of the source sentence the report quotes.
    - `new-term` WARN: use the source's wording unless the fact sheet gives the term. To shorten a term the source spells out, define the abbreviation at first use: "electrochemical impedance spectroscopy (EIS)".
@@ -103,7 +103,7 @@ Apply these within the hard constraints. When a style rule and a hard constraint
 - **S4. Paragraph openings.** Start each paragraph with the paper's specific problem or finding (in a methods paragraph, with what was done or why). Background sentences that are in the source are content, so keep them, but move them out of the paragraph's first sentence.
 - **S5. Three-item lists.** Break the "A, B, and C" rhythm without dropping an item. Vary the method across the document:
   - Give one item the main clause and the others a phrase ("Microscopic voids form during cycling, accompanied by contact loss and dendrite growth."). Don't imply an order or a cause the source doesn't state.
-  - Announce and walk through ("Three strategies were tested. The first deposited...").
+  - Announce and walk through ("Three strategies were tested. The first deposited..."), only when the source states the count (H1).
   - Give two items one sentence and the third its own sentence with its own verb and angle.
 
   Never end the split-off item with "too", "as well", or "alongside them", and don't lean on "also". Swapping in "along with", "together with", or "alongside" everywhere just moves the pattern. The checker warns when more than two sentences end with an add-on or when these connectors are overused.
@@ -143,4 +143,5 @@ Without that fact sheet line, keep the source's wording and add to "Details you 
 - It treats counts as numbers. A true count you add ("two processes") fails if the source never uses that number, and passes by coincidence if the number appears elsewhere. H1 bans added counts either way.
 - It tracks only acronym- and formula-shaped terms (two or more capitals, or a capital plus a digit). Invented plain-word names, and invented authors without a year, get through.
 - It ignores ordinals ("first", "second") and a lone "one".
+- Its three-item-list check needs an Oxford comma ("A, B, and C"), and its add-on check misses connectors like "as do" and "so do". S5 still applies to both.
 - It can't judge claims, purposes, hedging, or whether a list kept all its items. That's the fidelity reread in step 4.
