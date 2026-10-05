@@ -54,5 +54,15 @@ class TestFlaggedRuns(unittest.TestCase):
         self.assertIn('Runs to rewrite: 1', text)
 
 
+class TestSkillVersion(unittest.TestCase):
+
+    def test_frontmatter_version_matches_heading(self):
+        import re
+        text = open(os.path.join(ROOT, 'skills', 'academic-humanizer', 'SKILL.md'), encoding='utf-8').read()
+        meta = re.search(r'^\s*version:\s*"([\d.]+)"', text, re.MULTILINE).group(1)
+        heading = re.search(r'^# Academic Humanizer \(v([\d.]+)\)', text, re.MULTILINE).group(1)
+        self.assertEqual(meta, heading)
+
+
 if __name__ == '__main__':
     unittest.main()
