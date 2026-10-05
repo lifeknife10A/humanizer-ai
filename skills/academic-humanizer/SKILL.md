@@ -79,7 +79,7 @@ If no fact sheet was given, don't stop to ask for one. Work from the source alon
    You may also fix any other error you notice (grammar, a broken reference). Rerun the fidelity reread (step 4) on every sentence you changed.
 7. **Deliver:**
    - the final text in one copy-pasteable block
-   - the final checker report
+   - the final checker report, pasted exactly as printed, ending with its `RESULT:` line. Never summarize or reword it. If you couldn't run Python, say so in the first line of your reply, so the user knows the text wasn't checked.
    - the fact-sheet details you used
    - anything left unresolved, with the reason (for example, a retention shortfall or a conflict between the source and the fact sheet)
    - **Details you could add**: vague spots in the source where the author's real specifics would help, written as questions. Example: "Spark plasma sintering: what temperature, pressure, and hold time?" Ask these; never answer them yourself.

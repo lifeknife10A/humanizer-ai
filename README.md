@@ -117,6 +117,13 @@ We benchmarked this system against **ZeroGPT** using an identical 1,037-word aca
 | Gemini 3.6 (low) Phase 4 round 1 | v7.9 | 1,423 | **66%** | Rewrote only 3 of 28 runs (18 of 89 highlighted sentences). v7.9 let empty REWRITE slots through to READY TO SCAN; v7.10 blocks them |
 | Gemini 3.6 (low) Phase 4 round 2 | v7.10 | 1,432 | **58.2%** | Filled all 29 runs but copied 13 highlighted sentences unchanged and misreported the splicer's result. v7.11 writes the draft only after READY TO SCAN |
 
+### Fourth test: DS-SSN extended abstract (1,194 words, 5 sections, bullets)
+
+| Run | Skill | Words | ZeroGPT AI % | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| Raw abstract | n/a | 1,194 | **96.3%** | |
+| Haiku 4.5 (claude.ai), single pass | v7.11 | 878 | **78.2%** | The checker fails it on 11 counts: 73.5% retention, 10 missing section and count numbers. It kept em dashes and averaged 17 words per sentence, so the skill's steps were apparently not followed |
+
 Texts and sentence-level ZeroGPT labels are in [`research/data/`](research/data/).
 
 ---
