@@ -1,0 +1,14 @@
+# OS Files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# LaTeX auxiliary build files
+*.aux
+*.bbl
+*.blg
+*.out
+*.toc
+*.fls
+*.fdb_latexmk

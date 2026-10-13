@@ -1,0 +1,937 @@
+=== PAGE 1 ===
+3336 IEEE TRANSACTIONS ON SERVICES COMPUTING, VOL. 19, NO. 5, SEPTEMBER/OCTOBER 2026
+Short Paper
+AIAER-Mask: Safe Neuro-Symbolic Intent-Correct Routing for
+Event-Driven Microservices
+Hossam Hassan , Shadia Sarhan , and Ahmed Shalaby
+Abstract—Event-driven microservice systems route heterogeneous
+operations through rapidly changing service replicas. Conventional
+performance-oriented routing systems, including static routing, EWMA-
+based selection, Power-of-Two-Choices, and unconstrained reinforcement-
+learning policies, can select low-latency replicas that are semantically in-
+valid for the requested operation. Such routing mistakes may preserve raw
+throughput while violating application intent, consistency, privacy bound-
+aries, or update semantics. This paper presents AIAER-Mask, a safe neuro-
+symbolic routing framework for intent-correct event routing. AIAER-Mask
+separates safety from adaptation: a lightweight symbolic intent guard de-
+rives a hard action mask from a capability map, while an ofﬂine discrete Soft
+Actor-Critic policy selects among only admissible replicas using telemetry
+features. The symbolic mask is not a neural model; it is a deterministic safety
+layer that prevents invalid actions by construction under the active validated
+map. The evaluation covers multi-replica routing, ablations, masked ver-
+sus unmasked baselines, failure injection, dynamic/adversarial scenarios,
+broker-delay and local region-latency emulation, hyperparameter sensi-
+tivity, training diagnostics, reproducibility reporting, and DeathStarBench
+SocialNetwork/HotelReservation cross-workload evaluation. Across both
+workloads, hard symbolic masking preserves 100% intent correctness and
+0% invalid actions for masked variants under validated and actively en-
+forced capability maps, while performance-only no-mask baselines violate
+semantic routing constraints heavily. The mask itself is low-overhead for
+heuristic routers, whereas most additional overhead in full AIAER-Mask
+comes from neural inference, telemetry/state processing, and feature han-
+dling. Strong masked heuristics such as Mask+EWMA and Intent-safe
+P2C remain highly competitive and sometimes outperform the learned
+policy in latency and regret. We therefore position AIAER-Mask as a
+safety-constrained neuro-symbolic framework, not as the fastest router
+in every regime. The current evidence supports instantiation across two
+single-region DeathStarBench workloads and local region-like latency pro-
+ﬁles; broader production-trace, real multi-broker, and real multi-region
+validation remains future work.
+Index Terms —Event-driven architecture, microservices, safe routing,
+neuro-symbolic systems, ofﬂine reinforcement learning, symbolic masking,
+intent correctness, DeathStarBench, reproducibility.
+I. I NTRODUCTION
+E
+VENT-DRIVEN microservice architectures decompose user-
+facing operations into many asynchronous service interactions. A
+Received 7 February 2026; revised 5 June 2026; accepted 27 June 2026.
+Date of publication 6 July 2026; date of current version 9 October 2026.
+(Corresponding author: Hossam Hassan.)
+Hossam Hassan and Shadia Sarhan are with the Computer Science De-
+partment, Faculty of Computers and Artiﬁcial Intelligence, Benha Univer-
+sity, Banha 6470270, Egypt (e-mail: Hossam.Hassan.Elhadad@gmail.com; sha-
+dia.salah@fci.bu.edu.eg).
+Ahmed Shalaby is with the Computer Science Department, Faculty of
+Computers and Artiﬁcial Intelligence, Benha University, Banha 6470270,
+Egypt, and also with the Faculty of Computer Science and Engineer-
+ing, Alamein International University, El Alamein 5060310, Egypt (e-mail:
+Ahmed.shalaby@fci.bu.edu.eg).
+Digital Object Identiﬁer 10.1109/TSC.2026.3708565
+request such as composing a social-network post or reading a timeline
+may traverse event brokers, edge routers, cache layers, and multiple
+service replicas. Routing therefore affects latency, throughput, and tail
+behavior. However, performance is not the only requirement. Each
+operation carries semantic intent: a write operation must not be routed to
+a read-only handler, a timeline read must not be handled by a media-only
+endpoint, and an operation scoped to one capability group must not be
+sent to a replica outside that group.
+This distinction exposes a weakness in common routing practice.
+Static routing, EWMA latency routing, Power-of-Two-Choices, and
+learned policies can all optimize latency while ignoring semantic ad-
+missibility. A globally fast replica is not necessarily a valid replica
+for the current operation. Treating intent correctness as a soft reward
+penalty is also insufﬁcient, because a low-latency invalid action can
+still be selected when the learned policy is uncertain, the reward is
+misspeciﬁed, or the deployment workload shifts. In safety-sensitive or
+consistency-sensitive microservice systems, the correct question is not
+only which service is fastest, but which services are allowed.
+Existing work on cloud routing, microservice load balancing, and
+reinforcement learning for systems has shown that adaptive policies
+can improve resource use under changing load [5], [8], [9]. Ofﬂine
+reinforcement learning avoids unsafe online exploration by learning
+from historical behavior logs[3], [4]. Intent-based networking and zero-
+touch management emphasize high-level operator goals [15], [16].Y e t
+these lines of work do not directly provide a microservice replica-level
+mechanism that guarantees semantic admissibility for every routing
+action while still allowing adaptive performance optimization.
+We propose AIAER-Mask, a neuro-symbolic routing framework that
+separates what must never happen from what should be optimized.
+The symbolic layer maintains a capability map C(a,o ) that declares
+whether action or replica a may serve operation o. This layer produces
+a hard mask over invalid actions. The neural layer, implemented as
+an ofﬂine discrete Soft Actor-Critic (SAC) policy [25], ranks candidate
+actions using latency, queue, load, success-rate, and stress features. The
+learned policy is permitted to adapt only within the symbolic safety
+envelope.
+The evidence supports a nuanced interpretation: AIAER-Mask pro-
+vides strict intent correctness through hard symbolic masking under a
+validated and actively enforced capability map, while strong masked
+heuristics such as Mask+EWMA and Intent-safe P2C can remain
+competitive or outperform the learned policy in some latency and regret
+regimes. The strongest contribution is that hard symbolic masking
+provides strict intent correctness at very low masking cost, while
+the learned policy offers a path toward adaptive safety-constrained
+routing as environments become larger, more dynamic, and more
+non-stationary.
+To assess whether the symbolic intent-guard design is tied to a
+single application topology, the evaluation includes DeathStarBench
+1939-1374 © 2026 IEEE. All rights reserved, including rights for text and data mining, and training of artiﬁcial intelligence and similar technologi es.
+Personal use is permitted, but republication/redistribution requires IEEE permission. See https://www.ieee.org/publications/rights/index. html for more information.
+Authorized licensed use limited to: Mukesh Patel School of Technology & Engineering. Downloaded on October 13,2026 at 18:02:41 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 2 ===
+IEEE TRANSACTIONS ON SERVICES COMPUTING, VOL. 19, NO. 5, SEPTEMBER/OCTOBER 2026 3337
+HotelReservation in addition to SocialNetwork. HotelReservation has
+a different operation set and service structure, so it tests whether
+workload-speciﬁc capability maps can instantiate the same hard-mask
+mechanism beyond the SocialNetwork setup. This extension strength-
+ens applicability evidence, but it does not imply universal applicability
+to all microservice systems.
+The paper makes the following contributions:
+1) Safe neuro-symbolic routing formulation: We formalize intent-
+correct event routing using a capability map and a hard action
+mask. The symbolic mask is deterministic and lightweight; it is
+not an AI model.
+2) Ofﬂine learning inside a safe action space: We combine hard
+symbolic masking with ofﬂine discrete SAC so that the learned
+router optimizes telemetry-driven decisions only among seman-
+tically valid replicas.
+3) Comprehensive evaluation pipeline: We evaluate ablations,
+masked versus unmasked variants, legacy baselines, failure in-
+jection, dynamic/adversarial scenarios, broker-delay and Local
+Region-Latency Emulation, stress calibration, hyperparameter
+sensitivity, operational complexity, and reproducibility across
+ﬁve seeds.
+4) Cross-workload applicability evidence: We evaluate the frame-
+work on two DeathStarBench workloads, SocialNetwork and
+HotelReservation, showing that workload-speciﬁc symbolic
+masks preserve intent correctness across both workloads while
+maintaining honest comparisons against strong masked heuris-
+tics.
+5) Honest safety-performance interpretation: We show that mask-
+ing produces large correctness gains and invalid-action preven-
+tion, while most extra overhead in full AIAER-Mask comes
+from neural inference and state processing rather than from the
+symbolic mask itself.
+The remainder of the paper is organized as follows. Section II
+reviews related work. Section III deﬁnes the system model and safety
+constraint. Section IV presents the architecture. Section V describes
+the masked ofﬂine policy and data pipeline. Section VI describes the
+experimental methodology. Section VII presents results. Section VIII
+discusses operational complexity, applicability, limitations, and future
+work. Section IX concludes.
+II. R ELA TEDWORK
+A. Microservice and Event-Driven Routing
+Microservice routing is commonly implemented through static ta-
+bles, round-robin, least-connections, EWMA latency routing, and ran-
+domized load balancing such as Power-of-Two-Choices [2]. Heuristic
+and metaheuristic load-balancing methods remain attractive because
+they are inexpensive and transparent [7]. In event-driven systems,
+message brokers such as NA TS, Kafka, or RabbitMQ add decoupling
+between producers and consumers, but they do not automatically solve
+semantic routing correctness. A broker may deliver an event efﬁciently
+while the application-level router still chooses a semantically invalid
+handler.
+B. Reinforcement Learning for Cloud Systems
+Reinforcement learning has been studied for cluster scheduling,
+resource allocation, load balancing, and microservice placement [5],
+[6], [8], [9]. These systems can adapt to changing load, but online
+exploration can be unsafe in production. More importantly for this work,
+many formulations optimize performance metrics over anonymous
+requests and do not encode semantic operation constraints. An RL
+router without a hard safety layer may learn that an invalid but fast
+action is attractive.
+C. Ofﬂine RL and Safe Deployment
+Ofﬂine RL learns from logged data without online exploration [3],
+[4]. Conservative methods such as CQL, IQL, and TD3+BC reduce out-
+of-distribution action selection [10], [11], [12]. Off-policy evaluation
+and Fitted Q Evaluation help screen policies before deployment [13],
+[14]. These techniques improve deployment discipline, but they do not
+by themselves guarantee semantic admissibility. AIAER-Mask uses
+ofﬂine RL for adaptation, while a separate symbolic guard enforces
+admissibility.
+D. Safe RL, Constrained Decisions, and Action Masking
+Safe RL and constrained decision systems distinguish reward opti-
+mization from constraint satisfaction. Invalid action masking has been
+shown to improve learning in structured action spaces by removing
+illegal choices from the policy distribution [18], [19], [20], [21].O u r
+setting differs from games or schedulers where invalidity is often syn-
+tactic. Here, invalidity is semantic and application-speciﬁc: an action
+is valid only if the service replica is capable of handling the operation
+intent.
+E. Intent-Based and Neuro-Symbolic Systems
+Intent-based networking maps operator goals to network behavior
+[15], [16], [17]. Neuro-symbolic systems combine learned models with
+symbolic constraints or reasoning layers [22], [23], [24]. AIAER-Mask
+follows this hybrid design principle, but applies it to event-driven
+microservice replica selection. The symbolic component is deliberately
+simple and auditable; the neural component is used for performance
+adaptation inside the safe region.
+F . MLOps and Reproducible AI Systems
+Deploying learned policies in systems infrastructure introduces op-
+erational concerns beyond model accuracy. MLOps work emphasizes
+versioned data pipelines, monitored deployment, reproducible environ-
+ments, and model lifecycle management [26], [27], [28]. These con-
+cerns are directly relevant to learned routing: stale telemetry, topology
+drift, capability-map changes, and policy-update cadence can all affect
+safety and performance. The experiment pipeline therefore records
+environment details, seeds, repeated trials, dataset provenance, warm-
+up ﬁltering, hyperparameter sensitivity, and operational-complexity
+measurements.
+III. S YSTEM MODEL AND SAFETY FORMULA TION
+We model an event-driven application as a set of operation types O
+and candidate routing actions A. An action corresponds to a service
+replica or broker subject endpoint. The implementation uses a multi-
+replica capability map, so an operation can have multiple valid replicas:
+V (o)= {a ∈A : C(a,o )=1 }. (1)
+For example, compose_post may be served by com-
+pose_post_r1, compose_post_r2,o r compose_post_r3.
+Replicas within the same operation group are semantically valid, but
+they have different latency, queue sensitivity, jitter, and degradation
+behavior.
+Authorized licensed use limited to: Mukesh Patel School of Technology & Engineering. Downloaded on October 13,2026 at 18:02:41 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 3 ===
+3338 IEEE TRANSACTIONS ON SERVICES COMPUTING, VOL. 19, NO. 5, SEPTEMBER/OCTOBER 2026
+The capability function is
+C(a,o ) ∈{ 0, 1}, (2)
+where C(a,o )=1 means that action a is semantically admissible for
+operation o. The intent-correctness property is
+∀t : C(at,ot)=1 . (3)
+Equivalently, a policyπ is intent-correct if
+Pr
+π
+[∀t : C(at,ot)=1 ]=1 . (4)
+This notation makes the quantiﬁer explicit and avoids ambiguity about
+whether correctness is checked per decision or only in aggregate.
+The router observes a state vector st containing operation identity,
+valid-action mask, recent latency estimates, queue-depth proxies, esti-
+mated load, recent success rates, stress level, broker-delay setting when
+used, and replica metadata. The routing objective is to optimize latency
+and reliability within the constraint:
+;m a x
+π
+Eπ
+[ ∞∑
+t=0
+γtrt
+]
+s.t. Pr
+π
+[∀t : C(at,ot)=1 ]=1 . (5)
+The reward includes latency, success, timeout, invalid-action penalty
+for unsafe variants, and regret-aware shaping during training where
+telemetry permits estimating the best valid replica. Intent correctness
+is enforced by the mask rather than by reward shaping.
+IfV (o)= ∅, the safe behavior is not to guess. The router rejects the
+request or invokes the conﬁgured fallback path and records the fallback.
+This behavior is evaluated in failure-injection scenarios.
+Proposition 1(Intent correctness under hard symbolic masking):
+Assume that (i) the capability map C(a,o ) is correct for the active
+deployment conﬁguration, (ii) the router applies the hard mask M (o)
+before every action selection, (iii) the action selector samples or chooses
+only from the masked action set, and (iv) unknown operations or empty
+valid-action sets are rejected or sent to fallback rather than guessed.
+Then every selected non-fallback action at satisﬁesC(at,ot)=1 .
+Proof sketch: For every invalid action a with C(a,ot)=0 ,t h e
+hard mask removes the action from the admissible set or assigns it a
+blocking logit. The stochastic policy therefore assigns zero probability
+to invalid actions, and a deterministic selector cannot choose them
+because it operates only over V (ot). Thus, an invalid non-fallback
+action can be selected only if the capability map is wrong, the mask
+is bypassed, or an implementation fault violates the assumptions. The
+argument is a formal safety argument for the implemented masking
+rule, not a machine-checked proof of the whole deployment. Full formal
+veriﬁcation remains future work.
+IV . AIAER-MASK ARCHITECTURE
+A. Separation of Symbolic and Neural Layers
+AIAER-Mask has two distinct layers:
+r Symbolic safety layer: This layer stores the capability map, val-
+idates operation-action admissibility, constructs the hard mask,
+and blocks invalid cross-operation routing. It is deterministic,
+rule-based, auditable, and lightweight.
+r Neural adaptive layer: This layer is an ofﬂine-trained discrete
+SAC policy. It receives telemetry-derived state features and selects
+among the valid replicas that remain after masking.
+The symbolic mask is not an AI model. It is a lightweight symbolic
+safety layer that constrains the action space before the learned policy
+acts.
+Fig. 1 summarizes the proposed neuro-symbolic routing pipeline.
+The symbolic layer ﬁrst ﬁlters the action space through the capability
+map, after which the learned policy ranks only admissible replicas using
+telemetry-derived state features.
+B. Hard Masked Policy
+Given operation ot, the symbolic guard constructs a mask M (ot):
+Ma(ot)=
+{0,C (a,ot)=1 ,
+−κ, C (a,ot)=0 , (6)
+where κ is a large constant. For policy logits zθ (st,a ), the masked
+policy is
+πθ (a|st,ot)= exp(zθ (st,a )+ Ma(ot))∑
+a′∈A exp(zθ (st,a′)+ Ma′ (ot)). (7)
+IfC(a,ot)=0 , the probability of selectinga is numerically zero. This
+is the core reason hard masking can guarantee intent correctness when
+the capability map is correct and actively applied.
+C. Training Stabilization
+The ofﬂine learner uses discrete SAC with behavior-cloning regular-
+ization and regret-aware reward shaping. Behavior cloning is applied
+only to logged behavior actions that are valid under the active capability
+map. Regret-aware shaping uses telemetry snapshots in the baseline
+behavior logs to estimate the latency gap between the selected action and
+the best valid replica. No ﬁnal-evaluation outputs are used for training.
+V. D A TASET,I MPLEMENTA TION, AND REPRODUCIBILITY
+A. Implementation Platform
+The implementation uses DeathStarBench SocialNetwork and
+HotelReservation [1] with Dockerized services and a NA TS-based
+event fabric [29]. SocialNetwork is the primary workload for the full
+experiment pipeline. Its logical action space contains 18 actions across
+6 operation groups, with 3 valid replicas per operation. The Social-
+Network capability map is externalized in a Y AML conﬁguration ﬁle.
+V alidation reports 6 operations, 18 actions, 18 valid operation-action
+pairs, 90 invalid pairs, no unmapped operations, and no zero-valid-
+action operation. HotelReservation uses a separate workload-speciﬁc
+Y AML capability map to evaluate whether the symbolic mask can be
+instantiated for a second DeathStarBench service topology. The valida-
+tor emits a map hash and machine-readable report, and the evaluated
+maps include a schema_version ﬁeld so that capability maps can
+be treated as versioned deployment artifacts.
+B. Ofﬂine Dataset Collection
+The ofﬂine dataset is built only from dedicated behavior-policy base-
+line CSVs, not from ﬁnal evaluation logs. The behavior policies include
+Intent-EWMA, H-LRU, H-A∗, Op-Static, P2C, LEW, and Intent-safe
+P2C under low, medium, and high stress levels, with ﬁve seeds.
+Additional training perturbations include queue-depth spike, regional
+latency spike, and burst load under high stress. The data collection
+report records 210 baseline CSV ﬁles and 27,227,991 loaded rows. To
+keep the monolithic training artifact manageable, the builder writes a
+deterministic 1,000,000-transition training sample from the available
+baseline transitions and records the sampling metadata. Logged ﬁelds
+include operation, selected action, latency, success, overhead, timeout,
+application error, active and true capability validity, invalid selections,
+fallback indicators, warm-up ﬂags, and telemetry snapshots.
+Authorized licensed use limited to: Mukesh Patel School of Technology & Engineering. Downloaded on October 13,2026 at 18:02:41 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 4 ===
+IEEE TRANSACTIONS ON SERVICES COMPUTING, VOL. 19, NO. 5, SEPTEMBER/OCTOBER 2026 3339
+Fig. 1. Neuro-symbolic routing workﬂow. The symbolic layer determines which actions are admissible. The neural layer ranks only those actions using telemetry
+state.
+TABLE I
+ANAL YTICAL COMPARISON WITH ROUTING,R L ,SAFE-RL, SYMBOLIC, AND NEURO-SYMBOLIC APPROACHES.T HE YEAR COLUMN PROVIDES CONTEXTUAL
+METADA TA ONL Y.
+TABLE II
+HARDW ARE ENVIRONMENT USED FOR THE REPORTED EXPERIMENTS .
+TABLE III
+SOFTW ARE STACK RECORDED FOR REPRODUCIBILITY.
+C. Software and Hardware
+Tables II–IV summarize the execution environment and experiment
+conﬁguration. V alues are taken from the generated reproducibility
+report and conﬁguration ﬁles.
+D. Warm-up and Reporting
+Each trial records warm-up rows using an is_warmup column.
+Aggregation excludes warm-up rows and generates a warm-up ﬁl-
+tering report. Summary ﬁles report means, standard deviations, and
+conﬁdence intervals where applicable. The pipeline also generates
+LaTeX-ready tables, ﬁgure audits, experiment audit reports, and re-
+producibility reports.
+TABLE IV
+KEY EXPERIMENTAL CONFIGURA TION.
+VI. E XPERIMENTAL METHODOLOGY
+A. Research Questions
+The evaluation addresses the following questions:
+r RQ1: Does hard symbolic masking improve intent correctness
+and invalid-action prevention?
+r RQ2: Does the mask itself introduce meaningful operational
+overhead?
+r RQ3: How does AIAER-Mask compare with strong masked
+heuristics in stable and dynamic regimes?
+r RQ4: How robust is the hard-mask design under failure injection
+and stale or abnormal conditions?
+r RQ5: What are the reproducibility, hyperparameter, stress-
+calibration, broker-dependency, and region-latency boundaries?
+r RQ6: Can the same symbolic masking mechanism be instantiated
+across more than one DeathStarBench workload?
+B. Baselines and V ariants
+The ﬁnal comparison includes the full AIAER-Mask model, AIAER-
+Mask without selected state features, SAC without hard mask, SAC
+Authorized licensed use limited to: Mukesh Patel School of Technology & Engineering. Downloaded on October 13,2026 at 18:02:41 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 5 ===
+3340 IEEE TRANSACTIONS ON SERVICES COMPUTING, VOL. 19, NO. 5, SEPTEMBER/OCTOBER 2026
+with soft intent penalty, Mask+Static, Mask+EWMA, Intent-safe P2C,
+H-LRU, H-A∗, P2C, LEW, EWMA without mask, and Static without
+mask. The no-mask heuristics deliberately select from the full action
+space and may choose invalid cross-operation replicas. Existing masked
+heuristics remain constrained by the capability map.
+C. Cross-Workload Evaluation
+We instantiate AIAER-Mask on two DeathStarBench workloads:
+SocialNetwork and HotelReservation. Each workload uses its own
+capability map that deﬁnes valid operation-action pairs for that appli-
+cation. The same evaluation principles are applied across workloads:
+capability-map validation, hard symbolic masking, masked versus no-
+mask comparison, stable evaluation, safety metrics, and repeated seeded
+trials where applicable. The goal is not to claim universal applicability,
+but to test whether the capability-map-based symbolic mask preserves
+intent correctness across different DeathStarBench microservice struc-
+tures.
+D. Stress, Broker , and Region-Latency Sensitivity
+The offered-load tiers are conﬁgured as 5k, 9k, and 14k requests/s
+for low, medium, and high stress. The calibration report validates that
+these are ordered offered-load tiers and observes latency and p99 spread
+across tiers. We do not claim these values were derived from a full
+empirical saturation search. Broker dependency is evaluated through
+broker-delay emulation at 0, 2, 5, 10, and 20 ms. This is a broker-delay
+sensitivity study, not a real multi-broker comparison across NA TS,
+Kafka, and RabbitMQ. We also add Local Region-Latency Emula-
+tion: services remain local, while deterministic router/environment-
+layer latency proﬁles approximate same-region, near-region, far-region,
+asymmetric, degraded, recovering, stale-telemetry, and bursty region-
+like conditions. These proﬁles test timing sensitivity and adapta-
+tion under local emulation only; they are not a real multi-region
+deployment.
+E. Dynamic and Safety Scenarios
+Dynamic adaptation scenarios include sudden degradation, recov-
+ery, queue spike, rotating hotspot, bursty workload, mixed operation
+pressure, partial failure, oscillating latency, misleading EWMA, simul-
+taneous degradation, and delayed recovery. A separate environment
+validation report conﬁrms non-stationarity before routing results are
+interpreted: every scenario is labeled valid_dynamic, the oracle
+best replica changes over time, and best-versus-worst valid-replica
+latency gaps are measurable.
+Safety scenarios include unknown operation label, invalid service
+capability, service instance failure, stale capability map, burst load,
+queue-depth spike, and regional/network latency spike. These tests
+distinguish active capability validity from true capability validity, which
+is important when capability metadata is stale.
+F . Metrics
+We report mean latency (ms), p99 latency (ms), throughput
+(events/s), routing overhead (μs/request), success rate (%), intent cor-
+rectness (%), invalid action rate (%), invalid action count, fallback
+count, cumulative regret (ms), optimal replica match (%), adaptation
+time (ms), and recovery time (ms). Success rate is not the same as
+intent correctness: a request can complete at the system level while
+being semantically misrouted.
+VII. R ESULTS
+A. Capability Map and Correctness V alidation
+The multi-replica capability map validates successfully: 6 oper-
+ations, 18 actions, 18 valid operation-action pairs, and 90 invalid
+operation-action pairs. No unmapped operation, zero-valid-action op-
+eration, or unassigned service capability is present in the validated map.
+Under normal evaluation, all hard-masked variants report 100% active
+capability validity and 0% invalid-action rate.
+B. Masked V ersus No-Mask Routing
+Fig. 2 compares masked and unmasked counterparts. The effect
+of the symbolic mask is large and direct. Across comparable pairs,
+masking improves intent correctness by 91.06 percentage points on
+average and reduces invalid-action rate by 91.06 percentage points on
+average. The largest improvements are observed for Mask+Static versus
+Static without mask, AIAER-Mask versus SAC without hard mask,
+AIAER-Mask versus SAC with soft penalty, and Mask+EWMA versus
+EWMA without mask.
+Fig. 2 shows that hard-masked variants preserve intent correctness
+across stress levels, while no-mask and soft-penalty variants remain
+unsafe. This conﬁrms that semantic correctness is enforced by the
+symbolic mask rather than by reward optimization alone.
+Fig. 3 compares latency across ablation variants and stress levels. It
+shows why performance must be interpreted together with correctness:
+some methods are fast because they are not constrained to semantically
+valid replicas.
+Table V also shows the safety-performance tradeoff. Some
+performance-only no-mask methods are fast, but their intent correctness
+is extremely low. Masked heuristics preserve correctness and remain
+strong latency baselines. Full AIAER-Mask is not the fastest stable-
+regime method in the current evaluation. Fig. 3,T a b l eV, and Table VI
+report complementary views rather than duplicate measurements. Fig.3
+shows the stress-level ablation breakdown across low, medium, and
+high stress. TableV summarizes the main SocialNetwork stable-regime
+aggregate after warm-up ﬁltering. Table VI reports the workload-level
+comparison between SocialNetwork and HotelReservation. Therefore,
+the rows should be interpreted according to their stated measurement
+context.
+C. Cross-Workload Applicability
+Table VI summarizes the cross-workload comparison on Death-
+StarBench SocialNetwork and HotelReservation. The results reinforce
+the main safety claim. In both workloads, all hard-masked variants
+shown in the table preserve 100% intent correctness and 0% in-
+valid routing under workload-speciﬁc validated capability maps. Full
+AIAER-Mask records mean latency of 40.78 ms on SocialNetwork
+and 40.68 ms on HotelReservation, while maintaining 100% correct-
+ness under those maps in both cases. Mask+EWMA and Intent-safe
+P2C also preserve correctness and remain strong latency baselines.
+Intent-safe P2C is the fastest listed masked method on average in both
+workloads.
+The no-mask baselines demonstrate why correctness must be re-
+ported separately from latency. EWMA without mask records in-
+tent correctness of only 17.39% on SocialNetwork and 11.80% on
+HotelReservation, corresponding to invalid-action rates of 82.61% and
+88.20%. Static without mask is even more unsafe on SocialNetwork,
+with 0.85% correctness and 99.15% invalid actions, and remains unsafe
+on HotelReservation with 11.65% correctness and 88.35% invalid
+actions. These results show that the symbolic masking mechanism can
+Authorized licensed use limited to: Mukesh Patel School of Technology & Engineering. Downloaded on October 13,2026 at 18:02:41 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 6 ===
+IEEE TRANSACTIONS ON SERVICES COMPUTING, VOL. 19, NO. 5, SEPTEMBER/OCTOBER 2026 3341
+Fig. 2. Intent correctness across ablation variants and stress levels. Hard-masked variants preserve 100% correctness under validated capability maps, while
+no-mask and soft-penalty variants remain unsafe.
+Fig. 3. Mean latency across ablation variants and stress levels. Results should be interpreted jointly with intent correctness and invalid-action r ate.
+TABLE V
+SELECTED STABLE-REGIME AGGREGA TE RESULTS FOR THE MAIN SOCIALNETWORK EV ALUA TION AFTER W ARM-UP FILTERING.L OWER LA TENCY IS BETTER; HIGHER
+CORRECTNESS IS BETTER .F IG. 3 REPORTS STRESS-LEVEL ABLA TION BREAKDOWNS, WHEREAS THIS TABLE REPORTS AGGREGA TE STABLE-REGIME ROWS.
+TABLE VI
+CROSS-WORKLOAD COMPARISON ON DEA THSTA RBENCH SOCIALNETWORK AND HOTELRESERV A TION.H ARD-MASKED V ARIANTS PRESERVE 100% INTENT
+CORRECTNESS AND 0% INV ALID ACTIONS UNDER WORKLOAD-SPECIFIC V ALIDA TED CAPABILITY MAPS, WHILE NO -MASK BASELINES VIOLA TE SEMANTIC ROUTING
+CONSTRAINTS.
+Authorized licensed use limited to: Mukesh Patel School of Technology & Engineering. Downloaded on October 13,2026 at 18:02:41 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 7 ===
+3342 IEEE TRANSACTIONS ON SERVICES COMPUTING, VOL. 19, NO. 5, SEPTEMBER/OCTOBER 2026
+Fig. 4. Safety-performance tradeoff across routing variants. The no-mask methods may be fast but are unsafe; masked methods enforce intent correctn ess. The
+99.9% line is used only as a visual reference for near-strict intent safety and is not an operational threshold selected by the router.
+Fig. 5. Oracle best valid replica over time in validated dynamic scenarios. The oracle is used only for evaluation and not for training or routing.
+be instantiated across two DeathStarBench workloads, but they do not
+establish universal applicability to all microservice systems.
+D. Safety-Performance Tradeoff Interpretation
+The central empirical lesson is that correctness and performance
+must be interpreted jointly. The masked versus no-mask analysis indi-
+cates that simple masked baselines incur an average overhead change of
+1.548μs/request, while the AIAER/SAC hard-mask comparisons show
+an average overhead change of 335.190 μs/request. This separates the
+cost of the symbolic intent-guard layer from the cost of the neural
+adaptive layer.
+The correctness guarantee comes primarily from symbolic masking:
+invalid actions are removed before either a heuristic or learned policy se-
+lects a route. The mask is rule-based, deterministic, and capability-map
+constrained. By contrast, the learned SAC layer contributes adaptive
+ranking within the valid action set, but also introduces inference,
+feature-construction, telemetry, and state-processing overhead. This
+explains why masked heuristics remain extremely competitive in the
+current results. It also clariﬁes the expected deployment envelope: as
+the environment becomes larger, more delayed, more non-stationary,
+or more multi-region, the value of adaptive learning may increase, but
+the current single-region setup remains structured enough for strong
+telemetry heuristics to perform well.
+Fig. 4 summarizes the safety-performance tradeoff. The safe variants
+cluster at 100% intent correctness, whereas performance-only baselines
+can appear competitive in latency while violating semantic constraints.
+E. Dynamic Adaptation
+The dynamic environment validation conﬁrms that the tested
+scenarios are genuinely non-stationary: all scenarios are marked
+valid_dynamic, oracle best-replica paths vary over time, and
+best-versus-worst valid-replica latency gaps range from approximately
+31 ms to 231 ms on average depending on the scenario. Fig. 5 shows
+the oracle best replica changing over time.
+Fig. 5 illustrates that the best valid replica changes over time in the
+dynamic scenarios. This validates the need to evaluate adaptive routing
+behavior rather than relying only on static-regime averages.
+The dynamic results are important because they prevent overclaim-
+ing. In the current setup, Mask+EWMA is the strongest intent-safe dy-
+namic baseline by mean latency, cumulative regret, and optimal-replica
+Authorized licensed use limited to: Mukesh Patel School of Technology & Engineering. Downloaded on October 13,2026 at 18:02:41 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 8 ===
+IEEE TRANSACTIONS ON SERVICES COMPUTING, VOL. 19, NO. 5, SEPTEMBER/OCTOBER 2026 3343
+Fig. 6. Cumulative regret for AIAER-family and intent-safe methods in dynamic scenarios. Results should be interpreted jointly with intent correct ness and
+invalid-action rate.
+TABLE VII
+SELECTED DYNAMIC-REGIME RESULTS.M ASK+EWMA REMAINS A STRONG INTENT -SAFE BASELINE IN THE CURRENT DYNAMIC SCENARIOS .
+TABLE VIII
+HYPERPARAMETER SENSITIVITY SCOPE .T HE SELECTED V ALUES ARE DEFAULTS
+USED FOR THE MAIN CONFIGURED RUN ; THE SWEEP CHARACTERIZES
+SENSITIVITY RA THER THAN FINAL-TEST TUNING .
+match. AIAER-Mask preserves correctness, but it does not minimize
+dynamic regret in every scenario. This suggests that the present en-
+vironment, although non-stationary, is still simple enough for strong
+telemetry heuristics to remain effective. The generated drift-robustness
+artifact also reorganizes the dynamic and failure-injection outputs
+around governance and drift cases such as stale maps, service failure,
+queue spikes, rotating hotspots, delayed recovery, misleading EWMA,
+and simultaneous degradation. These are controlled stress cases rather
+than production topology drift. Larger action spaces, delayed telemetry,
+multi-region dynamics, and more complex topology drift may create
+conditions where learned policies become more valuable.
+Fig. 6 reports cumulative regret in dynamic scenarios. It should be
+read together with Table VII: masked heuristics remain strong in these
+controlled dynamics, while learned adaptation becomes clearer under
+harder timing conditions such as Local Region-Latency Emulation.
+F . Failure Injection and Safety Robustness
+Failure injection conﬁrms that hard-masked routing prevents invalid
+actions under the active capability map. Across burst load, invalid
+Fig. 7. Intent correctness under failure injection. Known-operation failure
+scenarios preserve 100% correctness under the active capability map; unknown
+operations are handled through controlled fallback/rejection.
+service capability, queue-depth spike, regional/network latency spike,
+service instance failure, and stale capability map scenarios, invalid
+actions selected remain zero and intent correctness remains 100%. The
+unknown-operation case triggers controlled fallback behavior, yielding
+a recorded fallback success rate of 100% for fallback requests and
+an overall success/intent-correctness rate of approximately 84.95%
+because unknown labels are intentionally not treated as normal valid
+operations.
+Fig. 7 shows that known-operation failure scenarios preserve cor-
+rectness under the active capability map. Unknown operations are
+intentionally handled through fallback/rejection rather than guessed
+routing.
+Authorized licensed use limited to: Mukesh Patel School of Technology & Engineering. Downloaded on October 13,2026 at 18:02:41 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 9 ===
+3344 IEEE TRANSACTIONS ON SERVICES COMPUTING, VOL. 19, NO. 5, SEPTEMBER/OCTOBER 2026
+Fig. 8. V alidation regret across training steps. Convergence is assessed using
+held-out validation diagnostics, entropy stabilization, and optimal-valid-replica
+match rather than reward alone; safety is enforced separately by the hard
+symbolic mask under a validated capability map.
+G. Ablation, Hyperparameters, and Training Convergence
+The ablation study isolates the role of hard masking, soft penalties,
+static masked routing, EWMA masked routing, and reduced state
+features. The key result is that soft penalties and no-mask SAC do
+not guarantee safety. Training is evaluated using held-out diagnostics
+rather than a reward-only curve.
+Fig. 8 presents validation regret rather than raw reward. This supports
+the training-stability discussion, while safety remains enforced sepa-
+rately by Proposition 1 and the hard symbolic mask under the validated
+capability map.
+The training diagnostics are optimization diagnostics rather than
+safety evidence. Because the reward combines latency, regret, time-
+out, and regularization terms, average reward can remain negative or
+visually stable even when validation regret and optimal-match behavior
+improve. We therefore assess training stability using validation regret,
+policy entropy, optimal-valid-replica match, critic/Q-loss stability, and
+held-out routing metrics. Safety is enforced separately by Proposition1
+and the hard symbolic mask under a validated capability map. Final test
+metrics are not used for hyperparameter tuning.
+The hyperparameter study varies learning rate, batch size, hid-
+den units, discount factor, entropy temperature, behavior-cloning co-
+efﬁcient, and regret coefﬁcient. Each conﬁguration records training
+outcomes and routing metrics. The ﬁnal pipeline uses a determinis-
+tic 70/15/15 train/validation/test split: validation diagnostics support
+sensitivity analysis, while ﬁnal test measurements are not used for
+tuning. The training audit records source-log, conﬁguration, dataset,
+and capability-map hashes; duplicate-curve checks; entropy; valida-
+tion regret; optimal-valid-replica match; and invalid-action diagnostics
+where available. Thus, convergence is interpreted through validation
+diagnostics and routing metrics rather than reward alone.
+H. Generalization, Broker , and Region-Latency Sensitivity
+Generalization is evaluated through workload-distribution shifts,
+cross-workload evaluation, and Local Region-Latency Emulation. The
+distribution artifact covers uniform, Zipﬁan, read-heavy, write-heavy,
+bursty, and mixed operation mixes. Cross-workload evaluation instanti-
+ates the symbolic mask on DeathStarBench SocialNetwork and Hotel-
+Reservation. Local Region-Latency Emulation keeps services local
+while injecting region-like timing proﬁles in the router/environment
+layer. Tables IX and X report bounded local timing and broker-delay
+emulation; neither is a real multi-region or multi-broker deployment.
+Table IX highlights the setting in which the learned policy is
+most useful. Under Local Region-Latency Emulation, Full AIAER-
+Mask achieves the lowest cumulative regret among intent-safe variants
+TABLE IX
+LOCAL REGION-LA TENCYEMULA TION SUMMARY.S ERVICES REMAIN LOCAL
+AND REGION -LIKE TIMING IS INJECTED IN THE ROUTER /ENVIRONMENT LA YER;
+THIS IS BOUNDED LOCAL EMULA TION , N O TR E A LM U L T I-REGION DEPLOYMENT.
+TABLE X
+BROKER-DELA Y EMULA TION FORFULL AIAER-MASK.T H I SI SD E L A Y
+EMULA TION ONL Y, NOT A REAL NATS VERSUS KAFKA VERSUS RABBITMQ
+COMPARISON.
+(63.95 ms) and the highest optimal-valid-replica match (98.29%), while
+preserving 100% correctness and 0% invalid actions. Compared with
+Mask+EWMA, this corresponds to approximately 93.1% lower regret
+and a 4.07 percentage-point higher optimal match. EWMA without
+masking has lower raw latency, but it is not intent-safe, with only
+16.12% correctness and 83.88% invalid actions. This supports adap-
+tive value under harder local timing conditions, not real multi-region
+readiness.
+TableX reports broker-delay emulation for Full AIAER-Mask. Small
+emulated delays up to 10 ms are partly absorbed by queueing behavior
+and measurement variance in this setup, while the 20 ms setting shows
+clearer latency increase and throughput degradation. Intent correctness
+remains unchanged across all delay settings because broker delay
+affects timing, not semantic admissibility under the active capability
+map.
+I. Key Takeaways
+Three takeaways follow from the evidence. First, hard symbolic
+masking converts intent correctness from a reward preference into a
+routing invariant under the validated capability map. Second, unsafe
+no-mask routing can appear fast because it may choose semantically
+invalid replicas. Third, the learned AIAER-Mask layer is most valuable
+under harder timing conditions: stable settings keep Mask+EWMA,
+Mask+Static, and Intent-safe P2C strong, while Local Region-Latency
+Emulation shows clearer adaptive value in regret and optimal-valid-
+replica match.
+The artifact also includes a safety-assurance summary that links each
+mechanism to its evidence and remaining assumption, including hard
+masking, fallback handling, map validation, failure injection, and delay
+emulation.
+VIII. O PERA TIONALCOMPLEXITY AND DISCUSSION
+A. Operational Complexity
+The operational report records a full AIAER-Mask checkpoint size
+of approximately 914 KB, training time of 66.98 seconds for the
+selected run, mean inference overhead of 367.83 μs/request after
+Authorized licensed use limited to: Mukesh Patel School of Technology & Engineering. Downloaded on October 13,2026 at 18:02:41 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 10 ===
+IEEE TRANSACTIONS ON SERVICES COMPUTING, VOL. 19, NO. 5, SEPTEMBER/OCTOBER 2026 3345
+warm-up ﬁltering, p50 overhead of 21.50 μs/request, p95 overhead of
+1034.50 μs/request, and p99 overhead of 1287.60 μs/request. A local
+operational-update microbenchmark over 30 repetitions separates sym-
+bolic update costs from learned-policy costs: Y AML parsing averages
+9.11 ms, capability-map loading averages 7.97 ms, capability validation
+averages 0.018 ms, mask rebuild averages 0.0026 ms, fallback-table
+rebuild averages 0.00085 ms, checkpoint loading averages 3.11 ms,
+policy initialization plus warm-up averages 14.66 ms, single-request
+inference after warm-up averages 0.230 ms, batch inference for 128
+requests averages 0.117 ms, and in-memory policy reference replace-
+ment averages 0.0032 ms. The artifact does not implement a production
+deployment-controller swap or separate fallback-table hot reload; those
+remain deployment-engineering tasks.
+This evidence supports a precise interpretation: the symbolic mask
+is lightweight, but full learned routing is not free. The extra cost comes
+mainly from neural inference, telemetry/state construction, and feature
+processing. A production deployment would need model caching,
+batched inference or optimized inference, policy update governance,
+and monitoring for topology or workload drift.
+B. Why Use AIAER-Mask?
+The strongest reason to use AIAER-Mask is not broad speed dom-
+inance. The reason is safety-constrained learning. Pure performance-
+only routing can be fast but unsafe. Soft penalties reduce but do not
+eliminate invalid actions. Hard symbolic masking eliminates invalid
+actions for known operations under the active capability map. The
+learned layer then offers an adaptive routing mechanism within the
+safe set.
+The present results also show that masked heuristics are serious
+baselines. In stable environments and in the current dynamic scenarios,
+Mask+EWMA and Intent-safe P2C can match or outperform AIAER-
+Mask on latency or regret while preserving correctness. This does not
+weaken the symbolic masking contribution; rather, it clariﬁes that the
+mask is broadly useful across both heuristic and learned routers.
+C. Practical Implications
+For practitioners, the safest near-term deployment pattern is layered.
+A symbolic capability guard should be placed in front of any perfor-
+mance optimizer, including simple heuristics, because it prevents entire
+classes of semantic routing failures. If a system is relatively stable
+and telemetry is fresh, masked heuristics may provide an attractive
+low-overhead operating point. The full learned AIAER-Mask policy is
+most appropriate when the routing environment is sufﬁciently dynamic
+to justify the additional inference and feature-processing cost, and
+when the operator can support model monitoring, ofﬂine retraining,
+and capability-map governance.
+D. Applicability
+AIAER-Mask applies best to systems where operations have clear
+semantic routing constraints and where invalid routing has real cor-
+rectness, privacy, consistency, or compliance cost. The cross-workload
+extension strengthens evidence that AIAER-Mask is not speciﬁc to one
+DeathStarBench topology, because SocialNetwork and HotelReserva-
+tion use different operation sets and workload-speciﬁc capability maps.
+However, broader production traces and multi-region deployments re-
+main future work. The framework is less compelling for homogeneous
+stateless services where every replica is truly interchangeable, and
+it requires a maintained capability map, telemetry collection, and an
+ofﬂine training pipeline for the learned component.
+E. Capability-Map Evolution
+The current implementation treats the validated capability map as the
+source of routing safety during an experiment. If an operation or action
+is not present in that map, the router does not infer a new capability
+at runtime. It rejects the event or sends it to the conﬁgured fallback
+path and records the context for analysis. This conservative behavior
+is deliberate: allowing a learned policy to promote an unknown action
+directly into the active safety map would weaken the intent-correctness
+guarantee.
+Capability-map validation checks that every operation has at least
+one valid action, every valid action exists in the action space, every
+action belongs to a declared service capability group, no duplicate
+or unknown actions appear, no service action is left unassigned, and
+valid/invalid pair counts are nonempty. The generated validation artifact
+records hashes for the SocialNetwork and HotelReservation maps,
+supporting CI-style version tracking. In deployment, CI should re-
+ject zero-valid actions, unknown actions, duplicate mappings, missing
+schema ﬁelds, or owner mismatches. Capability-map changes should
+require service-owner approval, CI validation, shadow/canary testing,
+runtime monitoring, and rollback. AI-assisted discovery may cluster
+repeated unknown-operation events and propose candidate updates,
+but candidates must remain inactive until schema checks, policy rules,
+service-owner review, shadow evaluation, and rollback planning suc-
+ceed. Thus, learning may help maintain the map while the active hard
+mask remains deterministic and auditable.
+F . Limitations and Future Work
+The present study provides bounded evidence rather than universal
+deployment claims. It evaluates two DeathStarBench workloads, So-
+cialNetwork and HotelReservation, which improves workload diversity
+but remains benchmark-based rather than production-trace validation.
+All experiments are single-region; Local Region-Latency Emulation
+injects controlled region-like timing asymmetry and therefore strength-
+ens timing stress coverage, but it does not replace real multi-region
+deployment studies. Broker sensitivity is likewise delay emulation, not
+a direct NA TS versus Kafka versus RabbitMQ deployment comparison.
+The dynamic and failure-injection scenarios are validated and non-
+stationary, but they remain controlled experiments rather than pro-
+duction topology drift at scale. The current environment is also rela-
+tively structured, and strong masked telemetry heuristics remain highly
+competitive. Thus, the learned router should be viewed as a safety-
+constrained adaptive framework whose beneﬁts are expected to become
+more pronounced in harder delayed-telemetry, multi-region, larger-
+scale, or stronger-drift settings. Future work should therefore exam-
+ine additional workloads, production-derived traces, real multi-region
+deployments, real broker ecosystems, larger action spaces, optimized
+inference, and more efﬁcient telemetry pipelines.
+Applicability depends on explicit semantic routing constraints and
+maintainable capability maps. Although the map is validated and ver-
+sioned, correctness of the real-world speciﬁcation remains a governance
+responsibility. AI-assisted map evolution is promising, but candidate
+updates should remain outside the active routing path until validated
+through schema checks, policy checks, service-owner review, and safe
+rollout. Taken together, we claim intent correctness under the active
+validated capability map and tested scenarios, but not universal latency
+superiority, real multi-broker generalization, or real multi-region pro-
+duction readiness.
+IX. C ONCLUSION
+This paper presented AIAER-Mask, a safe neuro-symbolic routing
+framework for event-driven microservices. The evaluation shows that
+Authorized licensed use limited to: Mukesh Patel School of Technology & Engineering. Downloaded on October 13,2026 at 18:02:41 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 11 ===
+3346 IEEE TRANSACTIONS ON SERVICES COMPUTING, VOL. 19, NO. 5, SEPTEMBER/OCTOBER 2026
+hard symbolic masking preserves 100% intent correctness and 0% in-
+valid actions for masked variants under validated and actively enforced
+capability maps. The cross-workload evaluation on DeathStarBench
+SocialNetwork and HotelReservation, together with Local Region-
+Latency Emulation, provides bounded evidence that the symbolic
+intent-guard mechanism can be instantiated across different benchmark
+service topologies and region-like timing conditions. The symbolic
+mask itself is lightweight and computationally cheap, especially for
+heuristic routers. Full learned routing adds additional overhead due
+to neural inference and telemetry/state processing. Strong masked
+heuristics remain competitive and sometimes outperform the learned
+policy in latency or dynamic regret.
+The appropriate conclusion is therefore nuanced: AIAER-Mask is
+not the fastest router in every regime. It is a safety-constrained routing
+framework that combines deterministic symbolic correctness guaran-
+tees with adaptive AI routing inside the safe action space. In future
+deployments, learning may also support capability-map maintenance
+by proposing candidate updates for repeated unknown actions, but such
+candidates must remain outside the active safety map until validated.
+This framing is more mature and more useful for production event-
+driven systems where semantic correctness is a ﬁrst-order requirement.
+REFERENCES
+[1] Y . Gan et al., “An open-source benchmark suite for microservices and
+their hardware-software implications for cloud and edge systems,” inProc.
+24th Int. Conf. Archit. Support Program. Languages Operating Syst., 2019,
+pp. 3–18.
+[2] M. Mitzenmacher, “The power of two choices in randomized load balanc-
+ing,” IEEE Trans. Parallel Distrib. Syst., vol. 12, no. 10, pp. 1094–1104,
+Oct. 2001.
+[3] S. Levine, A. Kumar, G. Tucker, and J. Fu, “Ofﬂine reinforcement
+learning: Tutorial, review, and perspectives on open problems,” 2020,
+arXiv:2005.01643.
+[4] R. F. Prudêncio, M. R. O. A. Maximo, and E. L. Colombini, “A survey
+on ofﬂine reinforcement learning: Taxonomy, review, and open prob-
+lems,” IEEE Trans. Neural Netw. Learn. Syst., vol. 35, pp. 10237–10257,
+Aug. 2024, doi: 10.1109/TNNLS.2023.3250269.
+[5] Y . Fan et al., “DRAS: Deep reinforcement learning for cluster scheduling in
+high performance computing,”IEEE Trans. Parallel Distrib. Syst., vol. 33,
+no. 12, pp. 4903–4917, Dec. 2022, doi: 10.1109/TPDS.2022.3205325.
+[6] H. Qiu et al., “Reinforcement learning for resource management in multi-
+tenant serverless platforms,” in Proc. 2nd Eur . Workshop Mach. Learn.
+Syst., Rennes, France, 2022, pp. 20–28, doi: 10.1145/3517207.3526971.
+[7] K. Krishna Sowjanya, K. P . Bindu Madavi, G. Khater, A. Jacob, and E.
+S. Ahmad, “Dynamic load balancing in cloud computing using memetic
+algorithm for better response time,” in Proc. IEEE Int. Conf. Con-
+temporary Comput. Commun. , Bangalore, India, 2025, pp. 1–6, doi:
+10.1109/InC465408.2025.11256447.
+[8] D. Wu et al., “Reinforcement learning for communication load balanc-
+ing: Approaches and challenges,” Front. Comput. Sci., vol. 5, 2023, Art.
+no. 1156064, doi: 10.3389/fcomp.2023.1156064.
+[9] W. Boudieb, A. Malki, M. Malki, A. Badawy, and M. Barhamgi, “Mi-
+croservice instances selection and load balancing in fog computing using
+deep reinforcement learning approach,” Future Gener . Comput. Syst. ,
+vol. 156, pp. 77–94, 2024, doi: 10.1016/j.future.2024.03.010.
+[10] A. Kumar, A. Zhou, G. Tucker, and S. Levine, “Conservative Q-learning
+for ofﬂine reinforcement learning,” inProc. Adv. Neural Inf. Process. Syst.,
+2020, pp. 1179–1191.
+[11] I. Kostrikov, A. Nair, and S. Levine, “Ofﬂine reinforcement learning with
+implicit Q-learning,” in Proc. Int. Conf. Learn. Represent. , 2022.
+[12] S. Fujimoto and S. Gu, “A minimalist approach to ofﬂine reinforcement
+learning,” inProc. Adv. Neural Inf. Process. Syst., 2021, pp. 20132–20145.
+[13] M. Uehara, C. Shi, and N. Kallus, “A review of off-policy evaluation in
+reinforcement learning,” 2022, arXiv:2212.06355.
+[14] R. Zhang, X. Zhang, C. Ni, and M. Wang, “Off-policy ﬁtted Q-
+evaluation with differentiable function approximators: Z-estimation and
+inference theory,” in Proc. 39th Int. Conf. Mach. Learn. , vol. 162, 2022,
+pp. 26713–26749.
+[15] A. Leivadeas and M. Falkner, “A survey on intent-based networking,”
+IEEE Commun. Surv. Tuts., vol. 25, no. 1, pp. 625–655, 1st Quart. 2023,
+doi: 10.1109/COMST.2022.3215919.
+[16] M. El Rajab, L. Y ang, and A. Shami, “Zero-touch networks: Towards
+next-generation network automation,”Comput. Netw., vol. 243, 2024, Art.
+no. 110294, doi: 10.1016/j.comnet.2024.110294.
+[17] 6G-IA Vision Working Group, “European vision for the 6G network
+ecosystem,” 6G-IA, White Paper, ver. 2.0, Nov. 2024, doi: 10.5281/zen-
+odo.13708424.
+[18] Y . Hou, J. Liang, and X. Zhang, “Exploring the use of invalid action
+masking in reinforcement learning: A comparative study of on-policy and
+off-policy algorithms in real-time strategy games,” Appl. Sci. , vol. 13,
+no. 14, 2023, Art. no. 8283, doi: 10.3390/app13148283.
+[19] S. Dey, S. Bhat, P . Dasgupta, and S. Dey, “Imperative action mask-
+ing for safe exploration in reinforcement learning,” in Proc. Int. Work-
+shop Explainable, Transparent Auton. Agents Multi-Agent Syst. , 2023,
+pp. 130–142, doi: 10.1007/978-3-031-40878-6_8.
+[20] A. Wilson, W. Holmes, R. Menzies, and K. Smithson Whitehead, “Ap-
+plying action masking and curriculum learning techniques to improve
+data efﬁciency and overall performance in operational technology cyber
+security using reinforcement learning,” in Proc. Conf. Appl. Mach. Learn.
+Inf. Secur ., Arlington, V A, USA, 2024, pp. 114–128.
+[21] H.-K. Wang, T.-Y . Y ang, and Y .-C. Lin, “A novel double Q-learning with
+invalid action masking for semiconductor ion implantation scheduling
+problem,” Comput. Ind. Eng. , vol. 211, 2026, Art. no. 111620, doi:
+10.1016/j.cie.2025.111620.
+[22] L. Mitchener, D. Tuckey, M. Crosby, and A. Russo, “Detect, un-
+derstand, act: A neuro-symbolic hierarchical reinforcement learning
+framework,” Mach. Learn. , vol. 111, pp. 1523–1549, 2022, doi:
+10.1007/s10994-022-06142-7.
+[23] G. Anderson, A. V erma, I. Dillig, and S. Chaudhuri, “Neurosymbolic
+reinforcement learning with formally veriﬁed exploration,” in Proc. Adv.
+Neural Inf. Process. Syst., 2020, pp. 6172–6183.
+[24] H. Khan et al., “Neuro-symbolic reinforcement learning for context-
+aware decision making in safe autonomous vehicles,” Int. J. Adv.
+Comput. Sci. Appl. , vol. 16, no. 5, pp. 599–609, 2025, doi:
+10.14569/IJACSA.2025.0160558.
+[25] T. Haarnoja, A. Zhou, P . Abbeel, and S. Levine, “Soft actor-critic: Off-
+policy maximum entropy deep reinforcement learning with a stochastic
+actor,” in Proc. Int. Conf. Mach. Learn. , vol. 80, 2018, pp. 1861–1870.
+[26] D. Kreuzberger, N. Kühl, and S. Hirschl, “Machine learning operations
+(MLOps): Overview, deﬁnition, and architecture,” IEEE Access, vol. 11,
+pp. 31866–31879, 2023, doi: 10.1109/ACCESS.2023.3262138.
+[27] S. Amershi et al., “Software engineering for machine learning: A case
+study,” in Proc. IEEE/ACM 41st Int. Conf. Soft. Eng. Soft. Eng. Pract. ,
+2019, pp. 291–300, doi: 10.1109/ICSE-SEIP .2019.00042.
+[28] D. Sculley et al., “Hidden technical debt in machine learning systems,” in
+Proc. Adv. Neural Inf. Process. Syst., 2015, pp. 2503–2511.
+[29] NA TS.io, “NA TS documentation,” 2026. Accessed: Jan. 2026. [Online].
+Available: https://docs.nats.io/
+Authorized licensed use limited to: Mukesh Patel School of Technology & Engineering. Downloaded on October 13,2026 at 18:02:41 UTC from IEEE Xplore.  Restrictions apply. 
