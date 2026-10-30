@@ -1,8 +1,8 @@
 ---
 name: academic-humanizer
-description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
+description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Works on plain text or LaTeX source: for a .tex file it rewrites only the prose and returns the complete .tex, with math, citations and commands untouched. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
 metadata:
-  version: "7.11.0"
+  version: "7.12.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.11.0)
+# Academic Humanizer (v7.12.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -24,18 +24,45 @@ The work happens in four phases. You rewrite the text and reread it against the 
 
 | Input | Required | What it is |
 | :--- | :--- | :--- |
-| Source text | Yes | The text to rewrite. Every number, term, claim, and list item in it must survive. |
+| Source text | Yes | The text to rewrite, as plain text or a LaTeX `.tex` file. Every number, term, claim, and list item in it must survive. |
 | Fact sheet | No | Real details from the author (parameters, instrument settings, results, citations) that may be added. Template: `fact_sheet_template.md` in this skill's directory. |
 
 The fact sheet is the only place added specifics can come from. Without one, you keep length by unpacking sentences and add no new detail.
 
 If no fact sheet was given, don't stop to ask for one. Work from the source alone and list what the author could add at the end (step 7).
 
+## LaTeX sources
+
+When the source is a `.tex` file, never rewrite the LaTeX directly. `scripts/latex_prose.py` turns it into a plain-text prose view, you run the whole procedure on that view, and the script rebuilds the `.tex` file from your rewrite.
+
+1. **Extract the prose view.**
+   ```bash
+   python3 SKILL_DIR/scripts/latex_prose.py extract paper.tex -o source.txt --map paper.map.json --legend legend.txt
+   ```
+   `source.txt` is the source for every step below. Each piece of LaTeX the rewrite must not touch is replaced by a placeholder, and `legend.txt` lists what each one holds:
+   - `⟦12⟧` keeps LaTeX exactly as it is: inline and display math, `\cite`, `\ref`, `\label`, comments, figures and tables (captions included), other environments and commands. Keep every one exactly once, at the same spot in its sentence. A citation stays with the claim it supports. A formula keeps its grammatical role ("the state vector ⟦9⟧ evolves as ⟦10⟧ where ⟦11⟧ is fixed").
+   - `⟦5⟧Introduction⟦/5⟧` wraps a command whose argument is prose: section headings, `\emph`, `\textbf`, footnotes. Reword the text between the markers and keep both markers. A heading stays on one line.
+
+   The preamble, title, authors, keywords and bibliography are kept whole. List items keep their `\item` placeholders, so lists stay lists: rewrite the text of each item, not the list's structure. Section numbers come from LaTeX, so a heading has no number to keep.
+
+   In the view, LaTeX escapes are plain characters: write `%`, `&`, `#`, `_` and `$` as they are, curly quotes for ``` `` ''```, and an en dash for `--`. Never type a backslash, `~` or `^`: there is no LaTeX in the prose. If a sentence seems to need new LaTeX, keep the original wording.
+
+   If the summary says some `\input{}` files weren't followed, extract and rewrite each of those files the same way.
+2. **Rewrite, reread, check and revise** (procedure steps 3–6) on `source.txt` as usual. The checker ignores numbers inside placeholders, which the placeholders protect, and fails the draft if any placeholder is missing, repeated or invented.
+3. **Rebuild the `.tex` file.**
+   ```bash
+   python3 SKILL_DIR/scripts/latex_prose.py restore draft.txt --map paper.map.json -o paper_humanized.tex --compile
+   ```
+   It refuses to write anything if a placeholder is missing, repeated, out of order, or if the prose contains LaTeX. Fix `draft.txt` and run it again. It then re-reads the new file to confirm every protected piece of LaTeX survived unchanged. With `--compile`, it also builds the PDF next to the `.tex` file when `pdflatex` is installed (run it from the folder that holds the class file and figures). Prose you didn't change comes back byte for byte.
+4. **Deliver the complete `.tex` file in one ```` ```latex ```` code block,** exactly as `restore` wrote it, never retyped or edited by hand. Add the checker report, the result of `restore` (and of `--compile`, if it ran), and the other items of step 7.
+
+**Phase 4 with LaTeX.** The user scans the compiled PDF. Use the prose view of the scanned version as `draft.txt` (`source.txt` after the first pass, the previous round's `draft_next.txt` later). The flagged lines can be copied from the PDF as they are: matching treats each placeholder as a few unknown words, so "[3]" or a rendered formula still matches. Each rewrite keeps every placeholder of its run's ORIGINAL; `apply_runs.py` blocks the result otherwise. Then rebuild with `restore`, using the same map.
+
 ## Procedure
 
 `SKILL_DIR` below means this skill's directory. Work in a scratch directory.
 
-1. **Save the inputs** as `source.txt` and, if given, `facts.md`.
+1. **Save the inputs** as `source.txt` and, if given, `facts.md`. For a `.tex` file, write `source.txt` with `latex_prose.py extract` instead (see "LaTeX sources" above).
 2. **Read the fact ledger.**
    ```bash
    python3 SKILL_DIR/scripts/check_draft.py source.txt --facts facts.md
@@ -211,3 +238,10 @@ Without that fact sheet line, keep the source's wording and add to "Details you 
 - It ignores ordinals ("first", "second") and a lone "one".
 - Its three-item-list check needs an Oxford comma ("A, B, and C"), and its add-on check misses connectors like "as do" and "so do". S5 still applies to both.
 - It counts hedges by kind and flags source sentences whose words mostly vanished. It can't see an invented claim ("Pixel perturbations fail here."), a hedge moved onto a different claim, a purpose turned into a result, or a list that lost one item. That's the fidelity reread in step 4.
+- With LaTeX, it checks only the prose. Numbers and terms inside math, tables and captions are protected by placeholders, not checked.
+
+Limits of the LaTeX support:
+- Commands it doesn't know are kept whole with their arguments, so prose inside a custom macro (for example `\newcommand{\note}[1]{...}` used as `\note{text}`) isn't rewritten.
+- Lists stay lists, and figure and table captions stay unchanged.
+- `\input{}` and `\include{}` files aren't followed; extract each one separately.
+- Phase 4 matches highlights copied from the PDF approximately: a placeholder stands for up to eight unknown words, and at least half of a highlighted line's words must match real words.

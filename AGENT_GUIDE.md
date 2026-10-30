@@ -21,7 +21,8 @@ humanizer-ai/
 │       └── scripts/
 │           ├── check_draft.py        # Phase 2 checker (fact ledger, fact & style checks)
 │           ├── flagged_runs.py       # Phase 4: group detector highlights into runs, emit runs file
-│           └── apply_runs.py         # Phase 4: splice rewritten runs back, then check
+│           ├── apply_runs.py         # Phase 4: splice rewritten runs back, then check
+│           └── latex_prose.py        # LaTeX: prose view with placeholders, and rebuild of the .tex
 ├── benchmarks/             # Historical test cases with exact ZeroGPT scores
 │   ├── 00_baseline_raw_1037w_100pct_ai.txt
 │   ├── 01_gemini_pass_640w_63pct_ai.txt
@@ -35,7 +36,8 @@ humanizer-ai/
     ├── test_humanizer.py   # Tests for the v5.0.0 regex engine
     ├── test_check_draft.py # Tests for the Phase 2 checker
     ├── test_flagged_runs.py # Tests for the Phase 4 run grouping
-    └── test_apply_runs.py  # Tests for the Phase 4 splicer
+    ├── test_apply_runs.py  # Tests for the Phase 4 splicer
+    └── test_latex_prose.py # Tests for LaTeX extraction, restoration and placeholder checks
 ```
 
 ---

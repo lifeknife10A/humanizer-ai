@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.11.0)
+Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.12.0)
 
 Groups the sentences a detector highlighted (e.g. ZeroGPT's yellow spans)
 into runs, so they can be rewritten as units. Detectors such as ZeroGPT
@@ -24,25 +24,84 @@ import argparse
 import re
 import sys
 
-from check_draft import segment
+from check_draft import PLACEHOLDER, segment, strip_placeholders
 
 MIN_PREFIX_CHARS = 12
+# A LaTeX placeholder can stand for up to this many words of the compiled PDF ("[3]", "s t", "Fig. 2").
+MAX_WILD_WORDS = 8
+WILD = None
+# Section numbers the compiled PDF adds to headings: "I.", "IV.", "2.", "2.1", "A."
+ENUMERATOR = re.compile(r'^\s*(?:(?:[IVXLC]+|[A-Z])\.|\d+(?:\.\d+)*\.?)\s+(?=[A-Za-z])')
 
 
 def _norm(text):
     return re.sub(r'[^a-z0-9]+', ' ', text.lower()).strip()
 
 
+def _tokens(text):
+    """Normalized words, with each kept-LaTeX placeholder as a wildcard. Pair markers stand for nothing."""
+    closed = {m.group()[2:-1] for m in PLACEHOLDER.finditer(text) if m.group()[1] == '/'}
+    out = []
+    for part in re.split(r'(\u27e6/?\d+\u27e7)', text):
+        if PLACEHOLDER.fullmatch(part):
+            if part[1] != '/' and part[1:-1] not in closed:
+                out.append(WILD)
+        else:
+            out.extend(_norm(part).split())
+    return out
+
+
+def _wild_match(key, sent, sentence_may_end):
+    """True if the key's words start the sentence's words, a wildcard standing for a few words.
+    With sentence_may_end, the sentence may also run out first (the key covers it and more).
+    At least half of the key's words must match real words, not wildcards."""
+    need = (len(key) + 1) // 2
+    memo = {}
+
+    def go(i, j, lit):
+        lit = min(lit, need)
+        if (i, j, lit) in memo:
+            return memo[(i, j, lit)]
+        if i == len(key):
+            result = lit >= need
+        elif j == len(sent):
+            result = sentence_may_end and lit >= need
+        elif sent[j] is WILD:
+            result = any(go(i + k, j + 1, lit) for k in range(min(MAX_WILD_WORDS, len(key) - i) + 1))
+        elif key[i] == sent[j]:
+            result = go(i + 1, j + 1, lit + 1)
+        else:   # the key's last word may be cut off
+            result = i == len(key) - 1 and sent[j].startswith(key[i]) and lit + 1 >= need
+        memo[(i, j, lit)] = result
+        return result
+    return go(0, 0, 0)
+
+
 def match_flags(sentences, flagged_lines):
     """Returns one boolean per sentence, plus the flagged lines that matched no sentence."""
-    keys = [_norm(line) for line in flagged_lines if len(_norm(line)) >= MIN_PREFIX_CHARS]
-    norm_sentences = [_norm(s.text) for s in sentences]
+    keys = [_norm(ENUMERATOR.sub('', line)) for line in flagged_lines]
+    keys = [k for k in keys if len(k) >= MIN_PREFIX_CHARS]
+    texts = [ENUMERATOR.sub('', s.text) for s in sentences]
+    norm_sentences = [_norm(strip_placeholders(t)) for t in texts]
+    wild = [_tokens(t) if PLACEHOLDER.search(t) else None for t in texts]
     flags = [False] * len(sentences)
     unmatched = []
     for key in keys:
-        hits = [i for i, s in enumerate(norm_sentences) if s.startswith(key) or key.startswith(s) and len(s) >= MIN_PREFIX_CHARS]
+        words = key.split()
+
+        def starts(i, s):
+            if wild[i] is not None:
+                return _wild_match(words, wild[i], len(s) >= MIN_PREFIX_CHARS)
+            return s.startswith(key) or key.startswith(s) and len(s) >= MIN_PREFIX_CHARS
+
+        def contains(i, s):
+            if wild[i] is not None:
+                return any(_wild_match(words, wild[i][j:], False) for j in range(len(wild[i])))
+            return key in s
+
+        hits = [i for i, s in enumerate(norm_sentences) if starts(i, s)]
         if not hits:
-            hits = [i for i, s in enumerate(norm_sentences) if key in s]
+            hits = [i for i, s in enumerate(norm_sentences) if contains(i, s)]
         if hits:
             for i in hits:
                 flags[i] = True
@@ -74,6 +133,8 @@ RUNS_FILE_HEADER = """# Phase 4 runs file.
 # Leave a REWRITE empty to keep that run as it is.
 # Do not edit ORIGINAL blocks: apply_runs.py uses them to find each run in the draft.
 # CONTEXT lines are for reading only; those sentences are not changed.
+# Markers like ⟦12⟧ hold LaTeX code: keep each one exactly once, in place. Reword the text
+# between a pair ⟦12⟧...⟦/12⟧ and keep both markers.
 """
 
 
@@ -107,7 +168,7 @@ def report(draft, flagged_lines, gap=1):
     sentences = rewritable_units(draft)
     flags, unmatched = match_flags(sentences, flagged_lines)
     runs = find_runs(sentences, flags, gap)
-    words = [len(s.text.split()) for s in sentences]
+    words = [len(strip_placeholders(s.text).split()) for s in sentences]
     total = sum(words) or 1
     flagged_words = sum(w for w, f in zip(words, flags) if f)
 
@@ -136,7 +197,7 @@ def report(draft, flagged_lines, gap=1):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.11.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Detector-Feedback Helper (v7.12.0)')
     parser.add_argument('draft', help='The draft that was scanned')
     parser.add_argument('flagged', help='File with one highlighted sentence (or its opening words) per line')
     parser.add_argument('--gap', type=int, default=1, help='Unflagged sentences to bridge inside a run (default 1)')

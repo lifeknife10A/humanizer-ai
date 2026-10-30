@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 4 Splicer (v7.11.0)
+Academic Humanizer: Phase 4 Splicer (v7.12.0)
 
 Splices rewritten runs back into a draft. Only the text of each run's
 ORIGINAL block is replaced. Every other character of the draft is copied
@@ -30,8 +30,10 @@ import os
 import re
 import sys
 
-from check_draft import (HEDGE_CLASSES, LIST_MARKER_LINE, MUST, _is_formula, _stems, check, format_report,
-                         segment)
+from collections import Counter
+
+from check_draft import (HEDGE_CLASSES, LIST_MARKER_LINE, MUST, PLACEHOLDER, _is_formula, _stems, check,
+                         format_report, segment, strip_placeholders)
 
 # Rewrites that cleared ZeroGPT runs kept at most 79% of each highlighted sentence's
 # words (typically 42-50%); near-copies at 80% or more were flagged again.
@@ -196,6 +198,21 @@ def enumeration_changes(before, after):
             if (p, o, prev) not in old]
 
 
+def placeholder_run_changes(runs):
+    """Per run: LaTeX placeholders the rewrite lost, repeated or brought in from elsewhere."""
+    problems = []
+    for number, original, rewrite in runs:
+        if not _filled(rewrite):
+            continue
+        before, after = Counter(PLACEHOLDER.findall(original)), Counter(PLACEHOLDER.findall(rewrite))
+        for tok in sorted(before - after):
+            problems.append(f'Run {number}: {tok} is missing')
+        for tok in sorted(after - before):
+            problems.append(f'Run {number}: {tok} ' + ('appears more than once' if tok in before
+                                                       else "is not in this run's ORIGINAL"))
+    return problems
+
+
 def run_meaning_changes(runs):
     """Per run: hedges or limiters the rewrite lost (blocking) and content words it dropped (to check)."""
     lost, dropped = [], []
@@ -217,7 +234,7 @@ def run_meaning_changes(runs):
 def review_runs(runs, result):
     """Sorts checker findings into those inside rewritten runs (fix) and those outside (leave),
     and flags highlighted sentences that a rewrite barely changed."""
-    rewrites = [_norm(r) for _, _, r in runs if _filled(r)]
+    rewrites = [_norm(strip_placeholders(r)) for _, _, r in runs if _filled(r)]
     inside, outside, general = [], [], []
     for f in result['findings']:
         if not f['where'] or f['where'].startswith('source'):
@@ -245,7 +262,8 @@ def _minor(finding):
     return finding['kind'] == 'long-sentence' and len(finding['text'].split()) <= LONG_SENTENCE_SLACK
 
 
-def format_review(inside, outside, general, copied, hedges=(), meaning=((), ()), enumerations=(), runs=()):
+def format_review(inside, outside, general, copied, hedges=(), meaning=((), ()), enumerations=(), runs=(),
+                  placeholders=()):
     lines = ['=== PHASE 4 REVIEW ===']
     unfilled = unfilled_runs(runs)
     if runs:
@@ -255,6 +273,10 @@ def format_review(inside, outside, general, copied, hedges=(), meaning=((), ()),
         lines.append(f'Runs still without a rewrite: {", ".join(map(str, unfilled))}. Fill every REWRITE slot. '
                      'An unrewritten run stays highlighted, so the score cannot drop below its share. '
                      f'Only a run made entirely of headings or formula lines may say {KEEP}.')
+    if placeholders:
+        lines.append('LaTeX placeholders changed in your rewrites (each ⟦n⟧ holds LaTeX code; keep every one '
+                     'of the run\'s placeholders exactly once):')
+        lines.extend(f'  {p}' for p in placeholders)
     if copied:
         lines.append(f'Highlighted sentences barely changed (rewrite keeps {BARELY_CHANGED:.0%}+ of their words; '
                      'restructure them, or they will be flagged again):')
@@ -286,14 +308,14 @@ def format_review(inside, outside, general, copied, hedges=(), meaning=((), ()),
         lines.append(f'  {f["level"]}  {f["kind"]}: {f["message"]}{where}')
     lines.append(f'Warnings in sentences outside the runs: {len(outside)}. Those sentences already passed the '
                  'detector; leave them unchanged.')
-    ok = (not unfilled and not copied and not hedges and not lost and not enumerations and not blocking
+    ok = (not unfilled and not placeholders and not copied and not hedges and not lost and not enumerations and not blocking
           and not any(f['level'] == 'FAIL' for f in general))
     lines.append(READY if ok else NOT_READY)
     return '\n'.join(lines)
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.11.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 4 Splicer (v7.12.0)')
     parser.add_argument('draft', help='The draft that was scanned')
     parser.add_argument('runs', help='Runs file with REWRITE slots filled in')
     parser.add_argument('-o', '--output', required=True, help='Where to write the new draft')
@@ -332,7 +354,7 @@ def main(argv=None):
     print()
     review = format_review(*review_runs(runs, result), hedges=hedge_changes(draft, new_draft),
                            meaning=run_meaning_changes(runs), enumerations=enumeration_changes(draft, new_draft),
-                           runs=runs)
+                           runs=runs, placeholders=placeholder_run_changes(runs))
     print(review)
     print()
     if review.endswith(READY):

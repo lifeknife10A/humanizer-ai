@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9+-green.svg)](https://python.org)
-[![Tests: Passing](https://img.shields.io/badge/Tests-70%20Passing-brightgreen.svg)](tests/)
+[![Tests: Passing](https://img.shields.io/badge/Tests-83%20Passing-brightgreen.svg)](tests/)
 [![ZeroGPT Target: <10%](https://img.shields.io/badge/ZeroGPT-2.9%25%20Achieved-success.svg)](benchmarks/)
 
 **Humanizer-AI** is an empirically validated, open-source pipeline designed to transform AI-generated academic papers, theses, and technical reports into authentic scholarship that reliably scores **< 10% AI (or 0%)** on ZeroGPT, Turnitin, and GPTZero in **a single turnkey iteration** while strictly preserving full manuscript length and factual accuracy.
@@ -22,7 +22,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 
 ---
 
-## System Architecture: Fact-Sheet Pipeline (v7.11.0)
+## System Architecture: Fact-Sheet Pipeline (v7.12.0)
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
@@ -68,7 +68,9 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Phase 4, detector feedback (v7.11.0).** A single pass lands around 27–35% on ZeroGPT, and local proxies can't predict which sentences ZeroGPT flags (see [the label study](research/ZEROGPT_LABEL_STUDY.md)). To go below 10%, the user scans the output and pastes back the highlighted sentences. `scripts/flagged_runs.py` groups them into runs and writes a fill-in file. The model writes only the rewrite of each run, and `scripts/apply_runs.py` splices those in. Every other sentence stays byte-for-byte the same, and the result is rechecked against the source. This repeats for up to four rounds, and every highlighted run must be rewritten before the splicer reports READY TO SCAN. On the second test abstract, two rounds took ZeroGPT from 27.2% to 5.3% (v7.1.0 reproduces that round exactly).
+**Phase 4, detector feedback (v7.12.0).** A single pass lands around 27–35% on ZeroGPT, and local proxies can't predict which sentences ZeroGPT flags (see [the label study](research/ZEROGPT_LABEL_STUDY.md)). To go below 10%, the user scans the output and pastes back the highlighted sentences. `scripts/flagged_runs.py` groups them into runs and writes a fill-in file. The model writes only the rewrite of each run, and `scripts/apply_runs.py` splices those in. Every other sentence stays byte-for-byte the same, and the result is rechecked against the source. This repeats for up to four rounds, and every highlighted run must be rewritten before the splicer reports READY TO SCAN. On the second test abstract, two rounds took ZeroGPT from 27.2% to 5.3% (v7.1.0 reproduces that round exactly).
+
+**LaTeX sources (v7.12.0).** For a `.tex` file, `scripts/latex_prose.py extract` writes a plain-text prose view in which every piece of LaTeX the rewrite must not touch (math, `\cite`, `\ref`, `\label`, comments, figures, tables, the preamble and the bibliography) becomes a numbered placeholder such as `⟦12⟧`. Headings, `\emph` and footnotes become pairs (`⟦5⟧Introduction⟦/5⟧`) whose text can be reworded. The whole pipeline, Phase 4 included, runs on that view. The checker fails a draft that loses, repeats or invents a placeholder. `latex_prose.py restore` then rebuilds the complete `.tex` file. It refuses drafts whose placeholders don't match and verifies that every protected piece survived unchanged; with `--compile` it also builds the PDF. Prose that wasn't changed comes back byte for byte.
 
 `humanizer.py` (the v5.0.0 regex engine) is no longer part of the skill pipeline. Its rewrites can split clauses into fragments, glue words together, and drop list items, so the skill now checks the LLM's output instead of rewriting it. The file and its tests remain in the repo.
 
@@ -197,6 +199,7 @@ python3 -m unittest discover -s tests
 - **[check_draft.py](skills/academic-humanizer/scripts/check_draft.py)**: The Phase 2 checker (fact ledger, fact checks, style checks).
 - **[flagged_runs.py](skills/academic-humanizer/scripts/flagged_runs.py)**: The Phase 4 helper that groups detector highlights into runs.
 - **[apply_runs.py](skills/academic-humanizer/scripts/apply_runs.py)**: The Phase 4 splicer that puts rewritten runs back without touching any other sentence.
+- **[latex_prose.py](skills/academic-humanizer/scripts/latex_prose.py)**: Turns a `.tex` file into a prose view with placeholders for all LaTeX, and rebuilds the `.tex` file from the rewritten view.
 - **[research/LITERATURE_REVIEW.md](research/LITERATURE_REVIEW.md)**: A cited review of how AI-text detectors and humanizers work.
 - **[research/ZEROGPT_LABEL_STUDY.md](research/ZEROGPT_LABEL_STUDY.md)**: Which sentence properties predict ZeroGPT highlights, from 292 labelled sentences.
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 2 Draft Checker (v7.11.0)
+Academic Humanizer: Phase 2 Draft Checker (v7.12.0)
 
 Compares a rewritten draft against its source text and an optional
 author-supplied fact sheet. It reports problems; it never rewrites text.
@@ -18,6 +18,11 @@ Fact checks (WARN):
   - more "must" than the source
   - source sentences whose content words are largely missing (possible drops)
 
+LaTeX placeholders (FAIL): when the source is a prose view written by
+latex_prose.py, every placeholder in it must appear in the draft exactly once.
+Placeholders are removed before all other checks, so numbers and words inside
+LaTeX are neither required nor counted.
+
 Style checks (WARN): sentences over --max-words, semicolons, reveal colons, em dashes,
 stock AI phrases, mid-sentence ", however,", participial tails, three-item
 lists, duplicate sentences, runs of sentences opening with the same word,
@@ -34,7 +39,7 @@ import argparse
 import re
 import statistics
 import sys
-from collections import namedtuple
+from collections import Counter, namedtuple
 from decimal import Decimal
 
 SMALL_NUMBERS = {
@@ -212,6 +217,29 @@ def read_fact_sheet(text):
     return '\n'.join(line for line in text.splitlines() if not line.lstrip().startswith('#'))
 
 
+# Placeholders written by latex_prose.py: ⟦12⟧ for kept LaTeX, ⟦12⟧...⟦/12⟧ around reworded commands.
+PLACEHOLDER = re.compile(r'\u27e6/?\d+\u27e7')
+
+
+def strip_placeholders(text):
+    """Text with the LaTeX placeholders removed, so the checks see only the prose."""
+    if not PLACEHOLDER.search(text):
+        return text
+    text = PLACEHOLDER.sub('', text)
+    text = re.sub(r'[ \t\u00a0]+([.,;:!?)\]])', r'\1', text)
+    return re.sub(r'[ \t]{2,}', ' ', text)
+
+
+def placeholder_changes(source, draft):
+    """Placeholders of the source that the draft lost, repeated or invented."""
+    before, after = Counter(PLACEHOLDER.findall(source)), Counter(PLACEHOLDER.findall(draft))
+    problems = [f'{tok} is missing; it holds LaTeX code from the source' for tok in sorted(before - after)]
+    problems += [f'{tok} appears {after[tok]} times; keep it exactly once' for tok in sorted(after)
+                 if tok in before and after[tok] > 1]
+    problems += [f'{tok} is not in the source; delete it' for tok in sorted(after) if tok not in before]
+    return problems
+
+
 LIST_MARKER_LINE = re.compile(r'^\s*(?:[-*\u2022]|\d{1,2}[.)])\s+')
 FORMULA_LINE = re.compile(r'(?:^|\s)=(?:\s|$)')
 
@@ -295,6 +323,8 @@ def _sort_numbers(numbers):
 def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_words=16, min_short=15.0):
     """Checks a draft against its source and fact sheet. Returns findings and stats."""
     facts = read_fact_sheet(facts)
+    placeholder_problems = placeholder_changes(source, draft)
+    source, draft = strip_placeholders(source), strip_placeholders(draft)
     source_numbers = _text_numbers(source)
     fact_numbers = _text_numbers(facts)
     allowed_numbers = source_numbers | fact_numbers
@@ -306,6 +336,9 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
         where = f'{origin} ¶{sentence.para} s{sentence.index}' if sentence else ''
         text = sentence.text if sentence else ''
         findings.append({'level': level, 'kind': kind, 'message': message, 'where': where, 'text': text})
+
+    for problem in placeholder_problems:
+        add('FAIL', 'placeholder', problem)
 
     draft_sentences = segment(draft)
     draft_numbers = set()
@@ -460,7 +493,7 @@ def _excerpt(text, limit=110):
 
 def format_report(result):
     stats = result['stats']
-    fact_kinds = {'new-number', 'missing-number', 'new-term', 'retention', 'hedge', 'modal', 'possible-drop'}
+    fact_kinds = {'placeholder', 'new-number', 'missing-number', 'new-term', 'retention', 'hedge', 'modal', 'possible-drop'}
     facts = [f for f in result['findings'] if f['kind'] in fact_kinds]
     style = [f for f in result['findings'] if f['kind'] not in fact_kinds]
 
@@ -497,6 +530,8 @@ def format_report(result):
 
 
 def format_ledger(source, facts=''):
+    placeholders = len(set(PLACEHOLDER.findall(source)))
+    source = strip_placeholders(source)
     facts = read_fact_sheet(facts)
     source_numbers = _text_numbers(source)
     fact_numbers = _text_numbers(facts) - source_numbers
@@ -515,7 +550,8 @@ def format_ledger(source, facts=''):
         'Numbers are normalized: "7.0" is listed as 7, "fifty" as 50, "3,860" as 3860.',
         'No other number, acronym or formula may appear in the draft, except an acronym',
         'you define at first use for a term the source spells out: "full term (ACRONYM)".',
-    ])
+    ] + ([f'LaTeX placeholders: {placeholders}. Keep every one exactly once (see latex_prose.py).']
+         if placeholders else []))
 
 
 def _read(path):
@@ -524,7 +560,7 @@ def _read(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.11.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.12.0)')
     parser.add_argument('source', help='Original text file')
     parser.add_argument('draft', nargs='?', help='Rewritten draft (omit to print the fact ledger)')
     parser.add_argument('--facts', help='Author-supplied fact sheet')
