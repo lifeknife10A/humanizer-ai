@@ -194,7 +194,7 @@ python3 -m unittest discover -s tests
 
 ## Repository Documentation Map
 
-- **[MATHEMATICS.md](MATHEMATICS.md)**: Mathematical formulations of Cross-Entropy Loss, Perplexity, Burstiness ($B = \sigma / \mu$), Zipf's Law, and Syntactic Tree Positional Entropy.
+- **[MATHEMATICS.md](MATHEMATICS.md)**: Mathematical formulations of Cross-Entropy Loss, Perplexity, Burstiness ($B = \sigma / \mu$), Zipf's Law, and Syntactic Tree Positional Entropy, plus the published score functions of five detector families (DetectGPT curvature, BPE multi-token penalty, GLTR log-rank, Binoculars cross-perplexity, and the watermark $z$-test), with an honest note on why they don't transfer to the black-box detectors the pipeline faces.
 - **[CHALLENGES.md](CHALLENGES.md)**: In-depth engineering post-mortem of all failures (The Truncation Trap, The Staccato Flaw, The Generic Fluff Trap) and current technical bottlenecks.
 - **[AGENT_GUIDE.md](AGENT_GUIDE.md)**: Developer & AI Agent onboarding guide for contributing to AST-based dependency parsing and automated burstiness synthesis.
 - **[SKILL.md](skills/academic-humanizer/SKILL.md)**: The skill: inputs, procedure, hard constraints, style rules and examples for Phases 1–3.

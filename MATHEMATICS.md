@@ -1,6 +1,8 @@
 # Mathematical & Theoretical Foundations of AI Text Detection
 
-This document formalizes the information-theoretic, probabilistic, and statistical mechanics governing modern AI text detectors (including ZeroGPT, Turnitin, GPTZero, and CopyLeaks), explaining why standard LLM outputs are flagged and how deterministic syntactic transformations manipulate classifier confidence.
+This document formalizes the information-theoretic, probabilistic, and statistical mechanics behind modern AI text detectors, explaining why standard LLM outputs are flagged and how deterministic syntactic transformations manipulate classifier confidence.
+
+**A caveat up front.** The commercial detectors this pipeline faces — ZeroGPT, Turnitin, GPTZero, CopyLeaks — are black boxes; none has published the score function it runs (see [`research/AI_DETECTION_MECHANICS.md`](research/AI_DETECTION_MECHANICS.md) §2 and [`research/LITERATURE_REVIEW.md`](research/LITERATURE_REVIEW.md) §1.2). The formulas below are the *published* methods from the detection literature. They explain why generic machine text is detectable in principle, and they justify the fact sheet and the style rules. They are **not** a local oracle for any specific detector: when we tested local proxies for several of them against ZeroGPT's own sentence highlights, they scored at or near chance (AUC 0.41–0.55; [`research/ZEROGPT_LABEL_STUDY.md`](research/ZEROGPT_LABEL_STUDY.md)). Read the theory as motivation, not as a scoreboard.
 
 ---
 
@@ -153,14 +155,84 @@ $$P(\text{token} = \text{"and"} \mid w_{t-1} = \text{","}, \text{count}(\text{co
 
 Detectors treat symmetrical 3-element lists as high-confidence $n$-gram indicators. 
 
-### Deterministic Triad Collapse
-The deterministic transformation:
-$$\text{Triad}(A, B, C) \to A \text{ and } B$$
-Collapses the trigram pattern, breaking the statistical detector's expected $n$-gram sequence and eliminating one of the highest-weight synthetic features.
+### Breaking the Triad Without Dropping an Item
+Earlier versions of this project collapsed the list to a pair, $\text{Triad}(A, B, C) \to A \text{ and } B$. That breaks the trigram, but it also deletes item $C$ — a violation of the Zero-Truncation Law (H4 in SKILL.md): $C$ is a fact, and facts must survive. The current transformation keeps all three items and breaks the *symmetry* instead, distributing them across clauses of different shapes:
+
+$$\text{Triad}(A, B, C) \to \big[\,A \text{ (main clause)};\ B,\ C \text{ (subordinate phrase or a separate sentence)}\,\big]$$
+
+This destroys the uniform $[\,\text{,}\ \text{,}\ \text{and}\,]$ $n$-gram signature — the highest-weight synthetic feature — while preserving every item. See S5 in SKILL.md for the concrete rewrite patterns.
 
 ---
 
-## 7. Mathematical Summary Table
+## 7. Score Functions of Specific Detector Families
+
+Sections 2–6 describe the *features* that separate machine from human text. This section writes down the published *score functions* for five detector families, formalizing the prose catalog in [`research/AI_DETECTION_MECHANICS.md`](research/AI_DETECTION_MECHANICS.md) §2 and the cited methods in [`research/LITERATURE_REVIEW.md`](research/LITERATURE_REVIEW.md) §1.1. Re-read the caveat at the top: these are *why machine text is detectable*, not *what ZeroGPT computes*.
+
+### 7.1 Log-Likelihood Curvature (DetectGPT, Fast-DetectGPT)
+
+DetectGPT does not threshold perplexity directly. It measures the **local curvature** of the scoring model's log-probability surface by perturbing the text and seeing how far the log-probability falls. For text $x$ and a perturbation distribution $q(\cdot \mid x)$ (small rewrites, e.g. T5 mask-filling):
+
+$$\mathbf{d}(x, q) = \log P_\theta(x) - \mathbb{E}_{\tilde{x} \sim q(\cdot \mid x)}\big[\log P_\theta(\tilde{x})\big]$$
+
+- **Machine text** sits on a *local maximum* of $P_\theta$ (negative curvature). Almost any perturbation lowers the log-probability, so $\mathbf{d} > 0$.
+- **Human text** does not sit on such a peak. Perturbation has little systematic effect, or even raises the log-probability, so $\mathbf{d} \le 0$.
+- **Fast-DetectGPT** [Bao et al., ICLR 2024] replaces the expensive perturbation sampling with an analytic *conditional probability curvature*, giving roughly a 340× speedup and, in the black-box setting, scoring with a surrogate model.
+- **Access requirement.** Both need token log-probabilities from a scoring model close to the generator — white-box, or a good surrogate. This is a property of *that* model's landscape, not of a commercial detector. [Mitchell et al., ICML 2023, arXiv:2301.11305; Bao et al., arXiv:2310.05130]
+- **Pipeline link.** Clause inversion (§5) and injected empirical specifics (§4) move text off the scoring model's local peak, which is the same thing $\mathbf{d}$ measures. We don't compute $\mathbf{d}$; the style rules approximate its gradient.
+
+### 7.2 BPE Subword Tokenization Asymmetry (the Multi-Token Penalty)
+
+This is the mechanism underneath Zipf's law (§4) and the reason the fact sheet is *mathematically* necessary, not just stylistically nice. Under Byte-Pair Encoding, a word $W$ is a chain of $m$ subword tokens, and its probability is the product along that chain:
+
+$$P(W \mid \text{context}) = \prod_{j=1}^{m} P(t_j \mid t_{<j}, \text{context})$$
+
+- A generic academic word (*furthermore*, *evaluation*, *implementation*) is usually a **single token** ($m = 1$): one high-probability step.
+- A precise technical entity — a stoichiometric formula like $\text{Li}_{6.4}\text{La}_3\text{Zr}_{1.4}\text{Ta}_{0.6}\text{O}_{12}$, an instrument acronym like ToF-SIMS, a reagent like acetonitrile — fragments into **$m \ge 4$** subword tokens.
+- Under low-temperature or nucleus decoding ($\tau < 0.7$, $p \in [0.8, 0.95]$), each extra factor $P(t_j \mid \cdot) < 1$ compounds. Unless the context makes the whole chain near-deterministic, the sampler's cumulative mass favors the single-token generic, and the specific term is never emitted. The model **regresses to the single-token mean**.
+- **Pipeline link.** The author's fact sheet is the only way to force these rare multi-token chains into the text, because the author knows the context that makes them deterministic ($P(W) \to 1$) and the model, left alone, does not. H1 then locks every such token so a later edit can't quietly drop it. This formalizes the "regression to the mean" root cause in [`research/WIKIPEDIA_SIGNS.md`](research/WIKIPEDIA_SIGNS.md) §2.
+
+### 7.3 GLTR Token Log-Rank and Bucket Distribution
+
+GLTR [Gehrmann, Strobelt & Rush, ACL 2019 Demo, arXiv:1906.04043] ranks each token by its position in the scoring LM's next-token distribution and bins it:
+
+| Bucket | Rank $r(w_i)$ | GLTR color |
+| :--- | :--- | :--- |
+| 1 | $r \le 10$ | green |
+| 2 | $10 < r \le 100$ | yellow |
+| 3 | $100 < r \le 1000$ | red |
+| 4 | $r > 1000$ | purple |
+
+The summary statistic is the mean log-rank:
+
+$$\text{LogRank}(W) = \frac{1}{N} \sum_{i=1}^{N} \ln r(w_i)$$
+
+- **Machine text:** 80–90% of tokens fall in Bucket 1, almost none in Bucket 4. $\text{LogRank}(W)$ is abnormally low and flat.
+- **Human text:** routinely places 10–25% of tokens in Buckets 3–4 (ranks $100$ to $50{,}000+$) through idioms, specific nouns, and idiosyncratic phrasing.
+- **Pipeline link.** We track length burstiness but not *rank entropy* or the tail-rank fraction, because they need a scoring LM and (per the label study) don't predict ZeroGPT highlights. Still, the tail-rank tokens humans inject are exactly the fact-sheet specifics (§4/§7.2). DetectLLM's log-rank ratio (LRR/NPR) refines this signal [Su et al., 2023, arXiv:2306.05540].
+
+### 7.4 Cross-Model Perplexity Divergence (Binoculars)
+
+Binoculars scores text *without* calibrating a single model's perplexity threshold, by taking the ratio of one model's log-perplexity to the cross-perplexity between two models $M_1$ (observer) and $M_2$ (performer):
+
+$$\text{Bino}(W) = \frac{\log\text{PPL}_{M_1}(W)}{\text{XPPL}_{M_1, M_2}(W)} = \frac{-\frac{1}{N}\sum_i \log P_{M_1}(w_i \mid w_{<i})}{-\frac{1}{N}\sum_i \sum_{v \in \mathcal{V}} P_{M_2}(v \mid w_{<i}) \, \log P_{M_1}(v \mid w_{<i})}$$
+
+- The denominator — $M_1$'s cross-entropy against $M_2$'s full next-token distribution — corrects the "capybara problem," where an unusual prompt makes even machine text look high-perplexity.
+- **Machine text** aligns with the generic transformer manifold, so the numerator is small relative to the denominator and the ratio is **low**. **Human text** decouples the two models, pushing the ratio **higher**. The decision threshold is a tuned constant (illustratively near the high-0.8s in the paper's regime); do not treat a fixed value as portable.
+- **Caveats.** It needs two models sharing a tokenizer, is published with 7B Falcon pairs, and its behavior with sub-1B pairs at sentence length is unverified. In RAID it was fragile to BERT synonym swaps (−36.1 accuracy points), so optimizing against it alone overfits to lexical tricks. Our review does not independently confirm its venue. [Hans et al., 2024, arXiv:2401.12070; Dugan et al., RAID, ACL 2024]
+
+### 7.5 Watermark Detection (Green/Red-List $z$-Test)
+
+A *generator-side* watermark [Kirchenbauer et al., ICML 2023, arXiv:2301.10226; DeepMind SynthID] hashes the preceding token(s) to split the vocabulary at each step into a green list $G$ (fraction $\gamma \approx 0.5$) and a red list, then biases sampling toward $G$. Detection is a one-proportion $z$-test on the green-token count $|W|_G$ over $N$ tokens:
+
+$$z = \frac{|W|_G - \gamma N}{\sqrt{N\,\gamma\,(1-\gamma)}}$$
+
+- **Watermarked text:** $|W|_G \gg \gamma N$, giving $z > 4$ ($p < 10^{-5}$). **Unwatermarked human (or third-party) text:** $|W|_G \approx \gamma N$, so $z \approx 0$.
+- **Not a threat model for this repo.** Watermarking requires the *generator* to cooperate and breaks under paraphrase, insertion and homoglyph attacks (AI_DETECTION_MECHANICS §2). A post-hoc editor rewriting someone's draft has no watermark to defeat, and ZeroGPT/Turnitin cannot read one. It is included here for completeness.
+- **Incidental note.** The $z$-statistic depends on the per-token green/red hash, which is keyed on the *preceding* token(s). The pipeline's clause inversions and the numbers it keeps between token pairs (§4–§5) happen to disrupt that bigram/trigram context, which would collapse $z$ toward 0 — a side effect of the style rules, never a design goal.
+
+---
+
+## 8. Mathematical Summary Table
 
 | Metric | AI Default (High Detection) | Humanized Target (Pass Zone) | Mathematical Action |
 | :--- | :--- | :--- | :--- |
@@ -169,4 +241,11 @@ Collapses the trigram pattern, breaking the statistical detector's expected $n$-
 | **Window Perplexity Dropouts** | 0% across 50 tokens | Frequent spikes | Insert unexpected clause inversions & empirical numbers |
 | **Initial Token Entropy ($H(\text{POS}_1)$)** | $\approx 0$ (95% Noun Subject) | $> 2.2$ bits (Diverse openers) | Prepositional & adverbial clause fronting |
 | **Semicolon / Colon Density** | High ($> 1$ per 100 words) | $0$ (Strictly banned) | Deterministic split into discrete declarative sentences |
-| **Triadic Enumerations** | Frequent ($A, B, \text{ and } C$) | $0$ (Strictly banned) | Programmatic collapse to binary pairs ($A \text{ and } B$) |
+| **Triadic Enumerations** | Frequent, symmetric ($A, B, \text{ and } C$) | Symmetry broken, all items kept | Distribute items across clauses of different shapes (never drop one) |
+| **Log-Likelihood Curvature ($\mathbf{d}$)** | $> 0$ (on a local peak) | $\le 0$ (off the peak) | Perturbation-sensitive clauses: inversions + injected specifics |
+| **Token Log-Rank (GLTR)** | 80–90% in top-10 bucket | 10–25% in tail buckets | Rare multi-token entities from the fact sheet |
+| **BPE Multi-Token Penalty** | Falls back to single-token generics | Rare 4–8 subword entities kept | Fact sheet supplies the multi-token chains the sampler won't reach |
+| **Cross-Model Ratio (Binoculars)** | Low (aligned to both models) | Higher (models decoupled) | Idiosyncratic phrasing both models find surprising |
+| **Watermark $z$-score** | $> 4$ (only if the generator watermarked) | $\approx 0$ | Not a repo threat model; style rules collapse it incidentally |
+
+The AI-default and target columns are **illustrative regimes from the detection literature**, not thresholds calibrated against any detector the pipeline is scored on. Rows 1–6 (perplexity through triads) are enforced, directly or by proxy, in `check_draft.py` and the SKILL.md style rules. Rows 7–11 (curvature, log-rank, BPE, Binoculars, watermark) require a scoring model or generator cooperation and are **not computed by this pipeline**; they are recorded here as the theory that motivates the fact sheet (§7.2) and the style rules, and because the single-pass ceiling they imply is exactly why Phase 4 defers to the detector's own feedback ([`research/ZEROGPT_LABEL_STUDY.md`](research/ZEROGPT_LABEL_STUDY.md)).
