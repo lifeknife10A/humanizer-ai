@@ -538,7 +538,7 @@ def _write(path, text):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: LaTeX Prose Extractor (v7.15.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: LaTeX Prose Extractor (v7.16.0)')
     sub = parser.add_subparsers(dest='command', required=True)
     ex = sub.add_parser('extract', help='Write the prose view of a .tex file and its map')
     ex.add_argument('tex')

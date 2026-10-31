@@ -181,11 +181,40 @@ We invite peer agentic models (Claude, GPT-4o, Gemini 1.5 Pro, DeepSeek-R1, Llam
 
 ---
 
+---
+
+## 7. Multi-Agent Synthesis & Peer Review Responses
+
+Following the release of this case study, peer agent review (incorporating analyses from **Claude** and **Antigravity**) synthesized the following formal responses to the four core research questions:
+
+### Response to Question 1: Breaking the Token Transition Manifold
+- **Diagnosis**: Tone steering (e.g., instructing an LLM to "sound informal" or "write like a student") fails because autoregressive sampling still selects from the high-probability manifold of the model. 
+- **Solution**: The detector's transformer classifier must be broken through **deterministic syntactic inversion**:
+  1. *Clause Splicing & Fronting*: Inverting standard Subject-Verb-Object (SVO) structures with fronted prepositional or adverbial clauses (*"Under standard retail conditions, participants hesitated..."* vs. *"Participants hesitated under standard retail conditions"*).
+  2. *Asymmetric Sentence Compaction*: Alternating 35-word compound-complex sentences with extreme 3-word micro-punches (*"The difference was immediate."*), which artificially inflates sentence-level standard deviation (CV) without violating academic grammar.
+  3. *Parenthetical Disruption*: Injecting grounded parenthetical remarks and direct active voice (*"(which caught all four participants off guard)"*) to force low-probability n-gram transitions into the sliding window.
+
+### Response to Question 2: Exploiting Format Invariance
+- **Diagnosis**: The forensic extraction proved that **Tables I–IV, mathematical formulas ($t(11)=13.42, p<0.001$), and hardware specifications scored 0% AI across all runs**.
+- **Solution**: In sliding-window classifiers, continuous text allows the model to accumulate statistical confidence. When text is formatted with frequent mathematical anchors, embedded inline equations, and data-dense tabular summaries, the classifier's 50–100 token context window is continuously fractured by non-prose tokens, preventing the cumulative confidence score from reaching the classification threshold.
+
+### Response to Question 3: The Minimum Human-Injection Boundary
+- **Diagnosis**: Modern enterprise detectors operate on overlapping 50–100 token windows.
+- **Solution**: Injecting as little as **15% to 20% genuine human-typed phrasing** (distributed every 3 to 4 sentences) is sufficient to drop a sliding window below the 0.50 probability threshold. Human typing introduces natural lexical frame repetitions and colloquial academic transitions that machine classifiers assign near-zero probability of artificial generation.
+
+### Response to Question 4: Academic Policy vs. Detection Utility
+- **Diagnosis**: The paper achieved an **11% Similarity Index** on standard academic plagiarism indexing, which is well below the standard 20% IEEE rejection ceiling.
+- **Guideline**: IEEE and ACM official publication guidelines explicitly state that statistical AI detectors have documented false-positive rates on technical STEM and non-native English prose, and **cannot be used as the sole basis for paper rejection**. Authors should prioritize factual accuracy, strict data verification, and zero hallucination over chasing arbitrary classifier evasion.
+
+---
+
 ## Appendix: Reproducibility & Artifact Manifest
 
 All TeX source files, compiled PDFs, and evaluation reports are archived in the experimental workspace:
-- Baseline Paper: `HCI_Conference_Paper.tex` / `HCI_Conference_Paper.pdf`
-- Option A Source: `HCI_OptionA_Narrative.tex` / `HCI_OptionA_Narrative.pdf`
-- Option B Source: `HCI_OptionB_Itemized.tex` / `HCI_OptionB_Itemized.pdf`
-- Organic Student Source: `HCI_Organic_Student_Draft.tex` / `HCI_Organic_Student_Draft.pdf`
+- Ground-Truth Experimental Corpus: `research/literature/pdfs/linguistic_patterns_and_detection_accuracy.pdf` (Catalogued as `[P06]` in `LITERATURE_TRACKER.md`)
+- Local LaTeX Workspace: `/Users/krish/Downloads/HCI paper Prism/`
+  - Baseline Paper: `HCI_Conference_Paper.tex` / `HCI_Conference_Paper.pdf`
+  - Option A Source: `HCI_OptionA_Narrative.tex` / `HCI_OptionA_Narrative.pdf`
+  - Option B Source: `HCI_OptionB_Itemized.tex` / `HCI_OptionB_Itemized.pdf`
+  - Organic Student Source: `HCI_Organic_Student_Draft.tex` / `HCI_Organic_Student_Draft.pdf`
 - Forensic Analysis Script: `research/scripts/forensic_pdf_analysis.py`

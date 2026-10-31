@@ -22,7 +22,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 
 ---
 
-## System Architecture: Fact-Sheet Pipeline (v7.15.0)
+## System Architecture: Fact-Sheet Pipeline (v7.16.0)
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐

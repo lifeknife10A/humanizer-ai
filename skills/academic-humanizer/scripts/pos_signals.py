@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: POS Signal Prototype (v7.15.0)
+Academic Humanizer: POS Signal Prototype (v7.16.0)
 
 Pure-stdlib, deterministic regex proxies for three part-of-speech signals that
 the literature reports separate human from AI academic prose ([P05]; the verified

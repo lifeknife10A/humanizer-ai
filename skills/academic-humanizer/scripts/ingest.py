@@ -164,7 +164,7 @@ def ingest(path, which=shutil.which, run=subprocess.run):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Intake (v7.15.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Intake (v7.16.0)')
     parser.add_argument('source', help=f'Source file or directory ({SUPPORTED})')
     parser.add_argument('-o', '--output', default='source.txt',
                         help='Plain text to write (default: source.txt)')

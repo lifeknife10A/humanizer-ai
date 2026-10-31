@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the POS Signal Prototype (v7.15.0)
+Unit Test Suite for the POS Signal Prototype (v7.16.0)
 Validates the pronoun, nominalization and passive proxies, their opt-in
 warnings, and the integration through check_draft.check(pos_checks=...).
 """

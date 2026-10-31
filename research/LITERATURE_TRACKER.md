@@ -12,6 +12,7 @@
 | **P02** | *StoryScope: Investigating idiosyncrasies in AI fiction* | Jenna Russell, Rishanth Rajendhran, Chau Minh Pham, Mohit Iyyer, John Wieting (COLM 2026 / UMD & Google DeepMind) | Discourse-Level Narrative Features, Authorship Fingerprints, Beyond Surface Style | [PDF](literature/pdfs/investigating_idiosyncrasies_in_ai_fiction.pdf) | [Markdown](literature/markdown/investigating_idiosyncrasies_in_ai_fiction.md) |
 | **P03** | *Identifying AI-Generated Text Designed to Evade Plagiarism Detection* | Aarushi Singh Ahlawat et al. (IEEE ICAISS-2025) | BERT vs RoBERTa vs DistilBERT on Humanizer/Evasion Text, Threshold Sensitivity | [PDF](literature/pdfs/identifying_ai_generated_text_designed_to_evade_plagiarism_detection.pdf) | [Markdown](literature/markdown/identifying_ai_generated_text_designed_to_evade_plagiarism_detection.md) |
 | **P04** | *A linguistic comparison between human- and AI-generated content* | Flávia A. Rodrigues, Niclas F. Sturm, Flávio L. Pinheiro (iScience / Cell Press, March 2026) | LIWC Psycholinguistics, SAGE N-Grams, Positivity & Certainty Bias, Grounded Temporality | [PDF](literature/pdfs/a_linguistic_comparison_between_human_and_ai_generated_content.pdf) | [Markdown](literature/markdown/a_linguistic_comparison_between_human_and_ai_generated_content.md) |
+| **P06** | *A Comparative Analysis of AI-Generated and Human-Written Text: Linguistic Patterns, Detection Accuracy, and Implications for Modern Communication* | Arahan Kujur (Nov 2025) | Mixed-Methods Linguistic Features (TTR, Lexical Density, Flesch), Detector Benchmarks (GPTZero, Copyleaks, Writer, Sapling), False Positives on High Polish | [PDF](literature/pdfs/linguistic_patterns_and_detection_accuracy.pdf) | [Markdown](literature/markdown/linguistic_patterns_and_detection_accuracy.md) |
 | **P05** | *Differentiating Between Human-Written and AI-Generated Texts Using Automatically Extracted Linguistic Features* | Georgios P. Georgiou (Information / MDPI, Nov 2025) | LASSO Penalized Regression on 94 Linguistic Features, Nominal Loading vs Pronouns/Auxiliaries, Passive Voice Disparity | [PDF](literature/pdfs/differentiating_between_human_written_and_ai_generated_texts_using_automatically_extracted_linguistic_features.pdf) | [Markdown](literature/markdown/differentiating_between_human_written_and_ai_generated_texts_using_automatically_extracted_linguistic_features.md) |
 
 ---
@@ -267,3 +268,34 @@ Which specific phonological, morphological, syntactic, and lexical components au
    - Georgiou [P05] reveals via LASSO regression that AI writing is plagued by heavy nominal loading (+21.17 noun weight), adjectival over-modification (+24.01), and a severe deficit in pronouns (-99.28) and auxiliary verbs (-21.30).
    - **Passive Voice Synthesis**: While [P05] found 33.6% passive in human essays, this repo's ZeroGPT benchmark calibration ([`POS_CERTAINTY_READABILITY.md`](POS_CERTAINTY_READABILITY.md)) proved that active authors' voice cleared the most runs (2.9% and 5.3% AI). Rule $S10$ is calibrated to avoid over-converting passive in methods while retaining active voice for claims.
    - **Pipeline Rule**: De-nominalize dense noun stacks; re-inject natural pronouns; keep methods in authentic passive without mandating high passive quotas.
+
+### [P06] A Comparative Analysis of AI-Generated and Human-Written Text: Linguistic Patterns, Detection Accuracy, and Implications for Modern Communication
+- **Authors**: Arahan Kujur
+- **Venue / Year**: Independent Empirical Study (November 2025)
+- **Links**: [Raw PDF](literature/pdfs/linguistic_patterns_and_detection_accuracy.pdf)
+- **Primary Domain**: Readability Indices (Flesch, Fog), Part-of-Speech Ratios (Adjectives, Nouns, Verbs), Detector Error Profiles (False Positives on Polish)
+
+#### Core Research Question:
+What quantifiable linguistic differences (lexical density, syntactic complexity, readability, and n-gram repetition) distinguish human writing from state-of-the-art LLM outputs, and why do commercial AI-detection systems generate systematic false positives on high-proficiency human essays?
+
+#### Experimental Setup:
+- **Corpus**: Twenty prompt-matched academic essays (10 human Band-9 IELTS essays vs. 10 state-of-the-art LLM essays across identical prompts).
+- **Linguistic Tooling**: Automated lexical density analysis, Type-Token Ratio (TTR), Flesch Reading Ease, Flesch-Kincaid Grade Level, Gunning Fog Index, POS tagging, and perplexity (GPT-2).
+- **Detectors Benchmarked**: GPTZero, Copyleaks, Writer.com, and Sapling.ai.
+
+#### Key Empirical Numbers & Linguistic Findings:
+- **Adjective Density Disparity**: AI text exhibits an average adjective proportion of **16.23%** versus only **9.06% in human text**—AI uses nearly *double* the descriptive modifiers.
+- **Readability & Complexity Gap**: AI essays are drastically more difficult to read and structurally heavier:
+  - Flesch Reading Ease: **16.18 (AI)** vs. **47.61 (Human)**.
+  - Flesch-Kincaid Grade: **15.64 (AI)** vs. **11.97 (Human)**.
+  - Gunning Fog Index: **18.88 (AI)** vs. **14.45 (Human)**.
+- **Lexical Density & TTR**:
+  - Lexical Density: **0.665 (AI)** vs. **0.551 (Human)**.
+  - Type-Token Ratio: **0.670 (AI)** vs. **0.513 (Human)**.
+  - Average Word Length: **5.98 characters (AI)** vs. **4.90 characters (Human)**.
+- **Perplexity Parity**: GPT-2 Perplexity was virtually indistinguishable (**23.02 for AI vs. 24.43 for Human**), proving that raw perplexity alone is insufficient to separate modern LLM text from human text.
+- **Detector False Positives**: Human essays scored up to 20%–40% AI on standard tools. The explicit drivers identified: *high lexical density, very clean syntax, perfect paragraph structure, and an unusually polished academic tone*.
+
+#### Direct Implications for Humanizer-AI:
+1. **The "High Polish" Detection Trap**: Writing that is "too clean, perfectly structured, and adjective-dense" triggers both zero-shot and enterprise classifiers. Real human academic prose incorporates natural repetition, lighter readability (~40+ Flesch score), and half the adjective load.
+2. **Perplexity Inefficacy**: Confirming that perplexity-based metrics struggle against modern models, reinforcing the need for syntactic restructuring and sliding-window disruption.
