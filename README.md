@@ -206,6 +206,7 @@ python3 -m unittest discover -s tests
 - **[latex_prose.py](skills/academic-humanizer/scripts/latex_prose.py)**: Turns a `.tex` file into a prose view with placeholders for all LaTeX, and rebuilds the `.tex` file from the rewritten view.
 - **[research/LITERATURE_REVIEW.md](research/LITERATURE_REVIEW.md)**: A cited review of how AI-text detectors and humanizers work.
 - **[research/ZEROGPT_LABEL_STUDY.md](research/ZEROGPT_LABEL_STUDY.md)**: Which sentence properties predict ZeroGPT highlights, from 292 labelled sentences.
+- **[research/TURNITIN_NOTES.md](research/TURNITIN_NOTES.md)**: Turnitin digest: similarity vs AI detection, accuracy claims with source labels, and what they imply for Phase 4.
 
 ---
 

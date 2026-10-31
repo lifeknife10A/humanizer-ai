@@ -40,6 +40,7 @@
 - **Turnitin.**
   - [vendor claim, relayed by Inside Higher Ed, 2023-06-01] Turnitin's chief product officer gave these figures: document FPR <1% for documents above 20% AI, sentence-level FPR of "approximately 4 percent", and "54 percent of false positive (human-written) sentences are located right next to AI-written sentences".
   - Turnitin's own pages returned HTTP 403 to my fetches, so I could not verify its segment/window architecture, its minimum length, or its handling of 1-19% scores from the primary source.
+  - Scale and pricing (1.9B-paper database, $1.79–$6.50/student), the Grammarly false-flag press cluster, the similarity engine's peer-reviewed flaws (Heather 2010; Rogerson & McCarthy 2017), and the fair-use litigation are digested in [TURNITIN_NOTES.md](TURNITIN_NOTES.md).
 - **Independent evaluations.**
   - Weber-Wulff et al. tested 14 tools, including Turnitin. All scored below 80% accuracy. About 50% of manually edited AI texts went undetected, and accuracy on machine-paraphrased AI text was 26% [Weber-Wulff 2023].
   - Perkins et al. tested 6 detectors on 805 samples. Mean accuracy was 39.5% on unmodified AI text and dropped a further 17.4% after evasion edits [Perkins 2024].
