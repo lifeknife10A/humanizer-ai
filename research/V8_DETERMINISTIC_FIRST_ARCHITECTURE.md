@@ -223,3 +223,57 @@ dependency to weigh before any skill integration.
   drafting is a defensible path, not only obfuscation. The engineering value of
   v8.0 is **fidelity-preserving structural rewriting**; evasion is a side effect,
   not the stated goal.
+
+---
+
+## 8. Integration status and Stage 2 (deferred)
+
+### 8.1 Stage 1 — integrated as an optional Phase 1.5
+
+Stage 1 is now documented in `SKILL.md` as an **optional, off-by-default,
+experimental "Phase 1.5"** that runs on the *draft* (after the LLM's Phase 1),
+not on the source and not inside `ingest.py`:
+
+```bash
+python3 research/scripts/ast_clause_splitter.py draft.txt -o draft.txt --check source.txt
+```
+
+Deliberate constraints on the integration:
+- **The stdlib core stays spaCy-free.** `ingest.py` and `check_draft.py` never
+  import the splitter; the dependency runs one way (splitter → `check_draft`), and
+  the spaCy import is lazy. If spaCy is absent, the step is simply skipped and the
+  rest of the pipeline is unaffected.
+- **The code stays in `research/`,** not in the shipped skill bundle, and the step
+  is not a default. It is promoted to the skill only once the ablation shows it
+  lowers scores on the target detector without a fidelity or quality cost.
+- **It is a surface decomposition, not an escape from the classifier.** The draft
+  was still produced by an LLM; splitting its sentences removes long-compound
+  structure but not the token-distribution fingerprint of the words.
+
+### 8.2 Stage 2 — deferred; here is the minimal shape if it is ever built
+
+Do not build Stage 2 until (a) the ablation shows Stage 1 (plus the other
+validated deterministic transforms) plateaus above the target, and (b) Phase 4
+detector feedback — the one proven score-mover (27% → 5.3%) — has been exhausted.
+
+When/if justified, the minimal design that does **not** forfeit Zero-Hallucination
+is **per-sentence best-of-n with hard rejection**, not per-token logit steering:
+
+1. **Generate** N rephrasings of one sentence with a **base (non-instruct) model**
+   (Xu 2026: base continuations read as ~97% human; instruct ~30%). A base model
+   is used precisely because it lacks the instruction-tuning fingerprint.
+2. **Gate every candidate** and discard any that fail:
+   - `check_draft` numbers/terms unchanged (H1/H2),
+   - content-lemma multiset preserved (H3/H4 proxy, as in Stage 1),
+   - semantic similarity to the original ≥ ~0.90 (e.g. SBERT),
+   - re-parses well-formed.
+3. **Select** the surviving candidate with the lowest score from a *local guidance
+   detector* (Cheng 2025). If none survives, **keep the original sentence**.
+
+The safety comes from **rejection, not trust**: a base model drifts and invents,
+so fidelity is enforced by throwing candidates away, never by assuming the model
+behaved. Open risks that keep this deferred: it needs a local base model and a
+guidance detector whose signal transfers to the real target (proxy mismatch is
+severe — AuthorMist scored 2% on GPTZero when trained against the wrong proxy),
+and best-of-n multiplies cost. Until those are resolved, v8.0 stays purely
+deterministic and leans on Phase 4.

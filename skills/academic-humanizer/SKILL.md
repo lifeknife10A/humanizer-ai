@@ -158,6 +158,30 @@ Never deliver with a `new-number` or `missing-number` failure. Both can always b
 
 If you can't run Python, do steps 2 and 5 by hand. List every number, acronym, and formula in the source and fact sheet, then compare your draft against that list sentence by sentence.
 
+## Optional: deterministic clause splitting (Phase 1.5, experimental)
+
+**Optional, off by default, experimental, and not part of the installed skill.** This is a
+repository research tool that needs `spaCy` (`pip install spacy` and
+`python3 -m spacy download en_core_web_sm`). **Skip it** if spaCy is not installed, or if you
+are running the skill standalone rather than inside the `humanizer-ai` repository — `ingest.py`,
+`check_draft.py`, and Phase 4 never depend on it and are unaffected.
+
+When working inside the repository, after your Phase 1 rewrite you may run a deterministic,
+dependency-parse splitter on the draft to break long compound sentences into shorter declarative
+units (style rule S1) without an LLM re-touching the text:
+
+```bash
+python3 research/scripts/ast_clause_splitter.py draft.txt -o draft.txt --check source.txt
+```
+
+It splits coordinate clauses (and, with `--participial`, participial tails), and keeps a sentence
+unchanged unless the split preserves every number and every content word and stays grammatical.
+The `--check` run prints the checker result on the output, so Phase 2 fidelity still governs. Its
+benefit against any specific detector is **unproven** until measured (see
+`research/V8_DETERMINISTIC_FIRST_ARCHITECTURE.md` and the ablation harness,
+`research/scripts/ablation_harness.py`): it is a surface decomposition, not a way to escape a
+classifier. Run the fidelity reread (step 4) again on any sentence it changed.
+
 ## Phase 4: Detector feedback (for scores under 10%)
 
 A single pass (steps 1–7) lands around 27–35% on ZeroGPT in our tests. Nothing you can compute locally predicts which sentences ZeroGPT will flag. Perplexity, token rank, Binoculars-style scores and style features all came out at or near chance on 600 labelled sentences (`research/ZEROGPT_LABEL_STUDY.md`). So going under 10% needs the detector's own feedback. On our test abstract, two feedback rounds took the score from 27.2% to 13.9% to 5.3%, with every fact intact.
