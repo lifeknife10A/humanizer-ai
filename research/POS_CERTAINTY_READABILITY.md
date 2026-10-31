@@ -47,12 +47,47 @@ the confirmed items into `LITERATURE_REVIEW.md`.
    sensitivity the source states, instead of smoothing real science into one tidy story. It is
    bounded by H3: keep the friction that is there, never invent any.
 
+## Prototyped in v7.15.0: the POS signals (`pos_signals.py`)
+
+[P05]'s strongest signals are pronoun deficit, nominal loading and passive-voice ratio. A proper
+measurement needs a POS tagger, which would break the pure-stdlib, deterministic design of
+`check_draft.py`. So v7.15.0 ships **regex proxies** instead, as a labelled prototype:
+
+- **pronoun rate** — referential personal/possessive/demonstrative pronouns per 100 words
+  (excluding "that", which is a relative/complementizer far more often than a demonstrative).
+- **nominalization rate** — words ending in `-tion/-sion/-ment/-ness/-ity/-ance/-ence/-ism` per
+  100 words, minus a small coincidental stoplist ("moment", "element", …).
+- **passive share** — percentage of sentences with a `be` (+ adverb) + past-participle match,
+  including common irregular participles.
+
+All three are **always printed as informational stats**. The pronoun and nominalization WARNs are
+**opt-in** (`check_draft.py --pos-checks`) and tuned to flag only extremes. The thresholds live in
+`pos_signals.py` (`MIN_PRONOUN_RATE = 1.5` per 100 words, `MAX_NOMINALIZATION_RATE = 11.0`).
+
+**Calibration against this repo's own texts (the reason passive never warns).** Measured over the
+benchmark and research corpora, the three proxies overlap heavily between AI and humanized text —
+consistent with the label study's "local proxies are at chance for ZeroGPT":
+
+| Text | ZeroGPT | pronoun/100w | nominalization/100w | passive % |
+| :--- | :--- | :--- | :--- | :--- |
+| baseline (raw) | 100% | 1.5 | 9.5 | 21.1 |
+| breakthrough | 2.9% | 2.8 | 4.5 | 0.0 |
+| Opus 5.5 v6.2 | 27.2% | 7.3 | 10.3 | 6.2 |
+| round 3 variant C | 5.3% | 7.8 | 9.2 | 8.0 |
+| grid paper source | raw | 0.5 | 11.9 | 0.0 |
+
+Pronoun rate tracks the AI→humanized direction loosely (raw sources sit lowest), and nominalization
+barely separates at all. **Passive points the wrong way for ZeroGPT**: the two lowest-scoring
+rewrites (2.9% and 5.3%) have the *least* passive (0–8%), while the 100%-AI baseline has the most
+(21%) — the opposite of [P05]'s human/AI gap. Warning on low passive would penalize the pipeline's
+best outputs, so passive is reported but **never warns**. This is the empirical reason the S10
+refinement (v7.14.0) was kept conservative rather than mandating passive.
+
 ## Deliberately deferred
 
-- **Pronoun deficit / nominalization density / passive-voice ratio as checks.** [P05]'s strongest
-  signals, but reliable measurement needs POS tagging. `check_draft.py` is pure-stdlib and
-  deterministic by design; regex proxies for these are noisy enough to risk drowning the report.
-  Candidate for a future informational-only pass, calibrated against the repo's benchmarks first.
+- **A real POS tagger.** The regex proxies above are crude; a tagged pass (pronoun/aux/noun counts,
+  true passive detection) would be more accurate but needs a dependency. Deferred until there is a
+  benchmark that shows the added accuracy changes ZeroGPT outcomes.
 - **Dale-Chall "difficult words."** Requires vendoring a ~3,000-word familiar-word list; Flesch
   Reading Ease already proxies vocabulary density without a data dependency.
 - **AIR-1 purple-paraphrase characterization.** Already handled in practice by Phase 4's

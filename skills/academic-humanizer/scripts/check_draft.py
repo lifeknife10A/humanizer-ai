@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 2 Draft Checker (v7.14.0)
+Academic Humanizer: Phase 2 Draft Checker (v7.15.0)
 
 Compares a rewritten draft against its source text and an optional
 author-supplied fact sheet. It reports problems; it never rewrites text.
@@ -32,8 +32,11 @@ too few short sentences (below --min-short), overused add-ons
 ("C too.", "C as well.", "also", "alongside", "along with", "together with"),
 and a very low Flesch Reading Ease (artificially dense vocabulary).
 
-The report also prints Flesch Reading Ease and Flesch-Kincaid grade as
-informational stats.
+The report also prints Flesch Reading Ease and Flesch-Kincaid grade, and the
+prototype POS rates (pronoun, nominalization, passive share), as informational
+stats. With --pos-checks it additionally WARNs on a very low pronoun rate or a
+very high nominalization rate (see pos_signals.py; these are noisy proxies, off
+by default).
 
 Usage:
   check_draft.py SOURCE [--facts FACTS]          print the fact ledger
@@ -46,6 +49,8 @@ import statistics
 import sys
 from collections import Counter, namedtuple
 from decimal import Decimal
+
+import pos_signals
 
 SMALL_NUMBERS = {
     'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
@@ -124,9 +129,9 @@ HEDGE_CLASSES = {
 }
 MUST = re.compile(r'\bmust\b', re.IGNORECASE)
 # Unearned certainty the draft adds beyond the source. LLMs overclaim confidence
-# (author-supplied analysis [P04]/[P05] in research/POS_CERTAINTY_READABILITY.md;
-# not benchmark-validated). Warn-only, and only when the draft has more than the source,
-# exactly like the `modal`/"must" check.
+# ([P04]/[P05], verified primary sources in research/LITERATURE_TRACKER.md; grounding
+# in research/POS_CERTAINTY_READABILITY.md; not yet validated against this repo's ZeroGPT
+# corpus). Warn-only, and only when the draft has more than the source, like `modal`/"must".
 CERTAINTY = re.compile(
     r'\b(?:clearly|undeniably|undoubtedly|unquestionably|indisputably|incontrovertibly'
     r'|definitively|certainly|obviously|evidently|plainly|assuredly'
@@ -159,8 +164,8 @@ MAX_CONNECTOR_SHARE = 0.06
 ACRONYM_DEFINITION = re.compile(r'\(([A-Za-z][A-Za-z-]{1,15})\)')
 ACRONYM_STOPWORDS = {'of', 'and', 'the', 'for', 'in', 'on', 'to', 'a', 'an', 'by', 'with'}
 # Flesch Reading Ease below this reads as artificially dense vocabulary: AI packs in Latinate
-# "difficult words" (author-supplied analysis [P05]: AI ~28 vs human ~55, in
-# research/POS_CERTAINTY_READABILITY.md). Warn-only and informational; academic prose is dense
+# "difficult words" ([P05]: AI ~28 vs human ~55; verified source in research/LITERATURE_TRACKER.md,
+# grounding in research/POS_CERTAINTY_READABILITY.md). Warn-only and informational; academic prose is dense
 # by nature, so this never fails and never asks for a technical term to be swapped out (H2).
 FLESCH_EASE_FLOOR = 30.0
 VOWEL_GROUP = re.compile(r'[aeiouy]+')
@@ -372,7 +377,8 @@ def _sort_numbers(numbers):
     return sorted(numbers, key=float)
 
 
-def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_words=16, min_short=15.0):
+def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_words=16, min_short=15.0,
+          pos_checks=False):
     """Checks a draft against its source and fact sheet. Returns findings and stats."""
     facts = read_fact_sheet(facts)
     placeholder_problems = placeholder_changes(source, draft)
@@ -531,6 +537,10 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
         add('WARN', 'readability', f'Flesch Reading Ease {flesch_ease:.1f} (below {FLESCH_EASE_FLOOR:g}); '
             'the vocabulary is dense. Where the source uses a plainer word, prefer it. '
             'Never swap out a technical term to raise the score (H2)')
+    pos = pos_signals.compute(' '.join(s.text for s in prose), [s.text for s in prose])
+    if pos_checks:
+        for kind, message in pos_signals.warnings(pos, len(prose)):
+            add('WARN', kind, message)
     stats = {
         'source_words': source_words,
         'draft_words': draft_words,
@@ -542,6 +552,9 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
         'length_burstiness': round(statistics.stdev(lengths) / mean, 2) if len(lengths) > 1 and mean else 0.0,
         'flesch_reading_ease': flesch_ease,
         'flesch_kincaid_grade': flesch_grade,
+        'pronoun_rate': pos['pronoun_rate'],
+        'nominalization_rate': pos['nominalization_rate'],
+        'passive_share': pos['passive_share'],
     }
     return {
         'findings': findings,
@@ -589,6 +602,8 @@ def format_report(result):
         f'Sentences: {stats["sentences"]}  Mean length: {stats["mean_length"]}  Max length: {stats["max_length"]}',
         f'Short sentences (<=5 words): {stats["short_share"]}%  Length burstiness (stdev/mean): {stats["length_burstiness"]}',
         f'Flesch Reading Ease: {stats["flesch_reading_ease"]}  Flesch-Kincaid grade: {stats["flesch_kincaid_grade"]}',
+        f'POS (prototype): pronouns {stats["pronoun_rate"]}/100w  nominalizations {stats["nominalization_rate"]}/100w  '
+        f'passive {stats["passive_share"]}% of sentences',
         '',
         f'RESULT: {"PASS" if result["passed"] else "FAIL"} ({fails} failures, {warns} warnings)',
     ]
@@ -626,7 +641,7 @@ def _read(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.14.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.15.0)')
     parser.add_argument('source', help='Original text file')
     parser.add_argument('draft', nargs='?', help='Rewritten draft (omit to print the fact ledger)')
     parser.add_argument('--facts', help='Author-supplied fact sheet')
@@ -634,6 +649,8 @@ def main(argv=None):
     parser.add_argument('--max-retention', type=float, default=110.0, help='Warn above this word ratio, %% (default 110)')
     parser.add_argument('--max-words', type=int, default=16, help='Warn on sentences longer than this (default 16)')
     parser.add_argument('--min-short', type=float, default=15.0, help='Warn if fewer than this %% of sentences have <=5 words (default 15)')
+    parser.add_argument('--pos-checks', action='store_true',
+                        help='Also emit prototype POS warnings (low pronoun rate, high nominalization); noisy, off by default')
     args = parser.parse_args(argv)
 
     source = _read(args.source)
@@ -642,7 +659,8 @@ def main(argv=None):
         print(format_ledger(source, facts))
         return 0
 
-    result = check(source, _read(args.draft), facts, args.min_retention, args.max_retention, args.max_words, args.min_short)
+    result = check(source, _read(args.draft), facts, args.min_retention, args.max_retention, args.max_words,
+                   args.min_short, args.pos_checks)
     print(format_report(result))
     return 0 if result['passed'] else 1
 

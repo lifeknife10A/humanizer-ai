@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9+-green.svg)](https://python.org)
-[![Tests: Passing](https://img.shields.io/badge/Tests-108%20Passing-brightgreen.svg)](tests/)
+[![Tests: Passing](https://img.shields.io/badge/Tests-122%20Passing-brightgreen.svg)](tests/)
 [![ZeroGPT Target: <10%](https://img.shields.io/badge/ZeroGPT-2.9%25%20Achieved-success.svg)](benchmarks/)
 
 **Humanizer-AI** is an empirically validated, open-source pipeline designed to transform AI-generated academic papers, theses, and technical reports into authentic scholarship that reliably scores **< 10% AI (or 0%)** on ZeroGPT, Turnitin, and GPTZero in **a single turnkey iteration** while strictly preserving full manuscript length and factual accuracy.
@@ -22,7 +22,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 
 ---
 
-## System Architecture: Fact-Sheet Pipeline (v7.14.0)
+## System Architecture: Fact-Sheet Pipeline (v7.15.0)
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
@@ -200,6 +200,7 @@ python3 -m unittest discover -s tests
 - **[SKILL.md](skills/academic-humanizer/SKILL.md)**: The skill: inputs, procedure, hard constraints, style rules and examples for Phases 1–3.
 - **[fact_sheet_template.md](skills/academic-humanizer/fact_sheet_template.md)**: Template for the author's fact sheet, the only allowed source of added specifics.
 - **[check_draft.py](skills/academic-humanizer/scripts/check_draft.py)**: The Phase 2 checker (fact ledger, fact checks, style checks).
+- **[pos_signals.py](skills/academic-humanizer/scripts/pos_signals.py)**: Prototype regex POS proxies (pronoun rate, nominalization density, passive share) that `check_draft.py` prints as stats and, with `--pos-checks`, warns on.
 - **[ingest.py](skills/academic-humanizer/scripts/ingest.py)**: Turns a `.txt`/`.md`/`.docx`/`.pdf` source into plain text, and a `.tex` file into the placeholder prose view (via `latex_prose.py`).
 - **[flagged_runs.py](skills/academic-humanizer/scripts/flagged_runs.py)**: The Phase 4 helper that groups detector highlights into runs.
 - **[apply_runs.py](skills/academic-humanizer/scripts/apply_runs.py)**: The Phase 4 splicer that puts rewritten runs back without touching any other sentence.

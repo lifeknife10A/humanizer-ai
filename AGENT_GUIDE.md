@@ -21,6 +21,7 @@ humanizer-ai/
 │       └── scripts/
 │           ├── ingest.py             # Intake: .txt/.md/.docx/.pdf -> plain text, .tex -> prose view
 │           ├── check_draft.py        # Phase 2 checker (fact ledger, fact & style checks)
+│           ├── pos_signals.py        # Prototype POS proxies (pronoun, nominalization, passive)
 │           ├── flagged_runs.py       # Phase 4: group detector highlights into runs, emit runs file
 │           ├── apply_runs.py         # Phase 4: splice rewritten runs back, then check
 │           └── latex_prose.py        # LaTeX: prose view with placeholders, and rebuild of the .tex
@@ -37,6 +38,7 @@ humanizer-ai/
     ├── test_humanizer.py   # Tests for the v5.0.0 regex engine
     ├── test_ingest.py      # Tests for intake (docx, pdf, tex, txt)
     ├── test_check_draft.py # Tests for the Phase 2 checker
+    ├── test_pos_signals.py # Tests for the prototype POS proxies
     ├── test_flagged_runs.py # Tests for the Phase 4 run grouping
     ├── test_apply_runs.py  # Tests for the Phase 4 splicer
     └── test_latex_prose.py # Tests for LaTeX extraction, restoration and placeholder checks

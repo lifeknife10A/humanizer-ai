@@ -2,7 +2,7 @@
 name: academic-humanizer
 description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Works on plain text, Word, PDF, or LaTeX source: scripts/ingest.py turns .txt, .md, .docx and .pdf files into plain text, and for a .tex file the pipeline rewrites only the prose and returns the complete .tex, with math, citations and commands untouched. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
 metadata:
-  version: "7.14.0"
+  version: "7.15.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.14.0)
+# Academic Humanizer (v7.15.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -250,6 +250,7 @@ Without that fact sheet line, keep the source's wording and add to "Details you 
 - Its three-item-list check needs an Oxford comma ("A, B, and C"), and its add-on check misses connectors like "as do" and "so do". S5 still applies to both.
 - It counts hedges by kind and flags source sentences whose words mostly vanished. It can't see an invented claim ("Pixel perturbations fail here."), a hedge moved onto a different claim, a purpose turned into a result, or a list that lost one item. That's the fidelity reread in step 4.
 - With LaTeX, it checks only the prose. Numbers and terms inside math, tables and captions are protected by placeholders, not checked.
+- The POS signals (pronoun rate, nominalization density, passive share) are a **prototype** (`pos_signals.py`). The report always prints the three rates, but the pronoun and nominalization WARNs are off unless you pass `--pos-checks`, and passive share never warns. They are crude regex proxies, not a POS tagger, and on this project's own texts they barely separate AI from humanized prose (see `research/POS_CERTAINTY_READABILITY.md`). Treat them as informational; never rewrite to chase one of these numbers at the cost of a hard constraint.
 
 Limits of the LaTeX support:
 - Commands it doesn't know are kept whole with their arguments, so prose inside a custom macro (for example `\newcommand{\note}[1]{...}` used as `\note{text}`) isn't rewritten.
