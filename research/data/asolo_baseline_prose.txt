@@ -1,0 +1,119 @@
+Digital apparel storefronts frequently induce extraneous cognitive load and premature checkout abandonment due to presentation-layer interface flaws, including uninformative feedback loops, rigid filtering controls, and ambiguous sizing documentation. This paper presents the empirical investigation, design, development, and usability evaluation of ASOLO Milano, a responsive e-commerce web platform engineered using an end-to-end user-centred Human-Computer Interaction (HCI) framework. Grounded in a contextual inquiry and heuristic audit of a major commercial retail benchmark portal (Shoppers Stop), we captured critical friction points through affinity clustering, empathy mapping, and dual-persona modeling. To eliminate sizing doubt and feedback vacuums, we integrated an interactive, privacy-preserving 3D silhouette Fit Finder alongside sticky faceted navigation and tactile micro-interactions. A controlled within-subjects laboratory experiment (N=12) employing an AB/BA counterbalanced sequence demonstrated statistically significant usability gains: cumulative task duration decreased by 59.0\
+
+Human-Computer Interaction, E-Commerce Usability, User Experience (UX), Heuristic Evaluation, Cognitive Load Theory, 3D Body Silhouette, Fit Finder, Accessibility (WCAG 2.1), Voice UI, Wearable Interaction.
+
+In the modern digital economy, electronic commerce has established itself as the primary channel for apparel retail. Nevertheless, commercial fashion storefronts frequently present severe interaction-design deficiencies, including intrusive promotional banners, deeply nested category taxonomies, and uncommunicative action states . On mainstream apparel portals such as Shoppers Stop, consumers routinely encounter a ``feedback vacuum'' upon adding merchandise to the cart, imprecise price-range sliders, and hidden return and sizing documentation. From an HCI perspective, these presentation-layer deficiencies severely tax human working memory capacity (Miller's Law) and amplify cognitive friction, triggering cart abandonment .
+
+Crucially, user dissatisfaction in digital storefronts is predominantly governed by front-end visual ergonomics, information scent, and interaction design rather than back-end database latency. The primary consumer cohort for contemporary digital apparel comprises tech-literate young adults and emerging professionals (aged 18--28). These shoppers exhibit high expectations for visual clarity, immediate feedback, transparent return guarantees, and sizing precision.
+
+To systematically address these interaction challenges, this research formulates two central Research Questions (RQs):
+
+RQ1: How does replacing feedback-vacuum CTAs and rigid range sliders with tactile micro-interactions, non-modal drawers, and sticky faceted chips affect task completion velocity and operational error rates in digital apparel commerce? RQ2: To what extent does an interactive, client-side 3D body silhouette Fit Finder mitigate consumer sizing uncertainty and elevate subjective usability (SUS) compared to conventional static size tables?
+
+In pursuing these questions, the study achieves four explicit research objectives: (1) Systematically diagnose usability breakdowns on a major retail portal (Shoppers Stop) through contextual inquiry and heuristic inspection; (2) Synthesize empirical findings into a user-centred HCI framework featuring dual personas and a design traceability matrix; (3) Engineer a responsive luxury apparel platform (ASOLO Milano) incorporating sticky navigation, tactile feedback, and an interactive 3D Fit Finder; and (4) Empirically evaluate the redesign against baseline benchmarks through counterbalanced user testing, expert heuristic grading, and WCAG 2.1 AA accessibility audits.
+
+Human-centric interaction design in e-commerce is grounded in cognitive psychology, ergonomics, and semiotics. Palmer demonstrated that navigation clarity, layout fluidity, and responsiveness dictate user retention and perceived utility. Sweller's Cognitive Load Theory (CLT) posits that extraneous cognitive load—induced by irrelevant visual clutter and ambiguous visual hierarchies—exhausts mental resources, degrading decision-making efficiency. Recently, Al-Showarah et al. empirically confirmed that visual clutter and unorganized filter structures directly elevate purchase hesitation and bounce rates on apparel platforms.
+
+Don Norman's interaction principles emphasize affordances, signifiers, and feedback. When clicking an ``Add to Bag'' button yields no perceptible confirmation, the resulting feedback deficit violates user mental models, prompting duplicate clicks and disorientation. Similarly, Shneiderman's Eight Golden Rules mandate informative feedback, consistency, and easy reversal of actions. In fashion retail, sizing uncertainty represents a critical cognitive hurdle; Zhang and Sundar showed that interactive 3D visualizations enhance consumer self-referencing and spatial perception, substantially elevating purchase confidence. Table presents a compact comparative summary of related works informing this study.
+
+[htbp] {>{ }p{1.2cm}>{ }p{1.6cm}>{ }p{2.0cm}>{ }p{2.3cm}} Ref. / Author & Method / Focus & Main Finding & Limitation / Relevance \\ Sweller (2011) & Cognitive Load Theory & Extraneous load degrades cognitive efficiency & Theoretical framework; requires UI empiricism \\ Palmer (2002) & Web Usability Metrics & Navigation and responsiveness govern retention & Evaluated early web; lacks dynamic modern UX \\ Hasan (2016) & E-Commerce Heuristics & Navigation and aesthetics drive user trust & Inspection only; lacks iterative prototyping \\ Norman (2013) & Interaction Design Principles & Signifiers and feedback align mental models & Foundational principles; needs domain specialization \\ Shneiderman (2016) & Eight Golden Rules & Informative feedback and error closure are vital & High-level guidelines requiring concrete UX mapping \\ Al-Showarah (2022) & Retail Cognitive Load & Visual clutter elevates cart abandonment & Focused on metrics; did not engineer solutions \\ Zhang (2023) & 3D Interactive Fitting & 3D visualization alleviates sizing hesitation & Studied standalone 3D; not integrated into full UX \\ Brooke (1996) & System Usability Scale & Standardized 10-item instrument for usability & Subjective metric; benefits from behavioral data \\ Nielsen (1994) & Heuristic Evaluation & 10 heuristics reliably uncover 80\ W3C (2023) & WCAG 2.1 Standard & Form accessibility and contrast ensure equity & Technical standard; requires practical workflow audit \\
+
+While prior literature independently examines general e-commerce heuristics , cognitive load metrics , and standalone 3D fit models , an end-to-end empirical integration is rarely documented. Existing studies either critique production retail websites without building functional remediations, or evaluate isolated prototypes without directly benchmarking them against commercial platforms under rigorous within-subjects counterbalancing. This research bridges this gap by operationalizing a full-cycle HCI methodology—from contextual inquiry and dual-persona mapping to functional prototype engineering (including a privacy-preserving 3D silhouette Fit Finder) and comprehensive empirical evaluation against Shoppers Stop.
+
+User Research, Empirical Pain Point Diagnosis, and Affinity Mapping
+
+The methodological foundation aligns with Jesse James Garrett's Five Elements of User Experience (Strategy, Scope, Structure, Skeleton, Surface) , integrating empirical field observation with qualitative clustering.
+
+A Contextual Inquiry was conducted with 4 active digital shoppers (aged 18--25, NMIMS student cohort) in naturalistic settings (NMIMS Library Quiet Zone and Campus Lounge). Participants were asked to complete typical apparel shopping workflows on a major commercial storefront ( ), including searching for formal menswear, configuring size and budget filters, inspecting fabric and size guides, and progressing to the checkout gateway. Observers recorded verbalized thoughts, physical navigation hesitations, cursor regressions, and misclicks.
+
+Target Website Usability Pain Points (Shoppers Stop Benchmark)
+
+Contextual observations and prototype audits uncovered five critical usability breakdowns:
+
+Low-Contrast Typography (Accessibility Breakdown): Product specifications, shipping disclosures, and support details are rendered in faint grey text (\#999999) on white backgrounds. This yields an inadequate contrast ratio of 2.3:1, failing WCAG 2.1 AA standards (4.5:1) and inducing severe visual eyestrain. Rigid Dual-Thumb Price Slider: The price filter relies exclusively on dual draggable slider thumbs with small touch targets. The interface lacks manual numeric input fields, preventing users from entering exact budgets (e.g., participants attempting to set a Rs. 2,000 ceiling repeatedly slipped to Rs. 2,350). Cumulative Layout Shift (CLS = 0.21): Late-loading third-party advertising banners, dynamic promotional carousels, and unconstrained product thumbnails abruptly shift page contents downwards, inducing accidental misclicks. Feedback Vacuum on ``Add to Bag'': Triggering the primary cart action provides no loading state, micro-animation, or immediate confirmation. Disoriented participants generated an average of 1.4 redundant clicks per item, repeatedly asking: ``Did my click register?'' Buried Sizing and Return Documentation: Critical return guarantees and contact lines are concealed inside collapsed footer accordions. Standard size tables fail to convey real body proportions, inducing ``Post-Purchase Fear'' regarding return hassles and wrong fits.
+
+Observational notes and interview data were transcribed onto affinity cards and grouped into four operational clusters:
+
+Cluster 1: Filter Disorientation: Overlapping badge pills, unorganized filter taxonomies, and the inability to clear active filters without a full page reload. Cluster 2: Information Overload \& Noise: Visual competition between discount tags (e.g., colliding ``NEW'' and ``30\ Cluster 3: Latency \& Feedback Deficit: Uncertainty regarding cart persistence, delayed modal dialogs, and abrupt cart page transitions that destroy browsing context. Cluster 4: Navigation Hierarchy Breakdown: Deeply nested multi-level mega-menus that abruptly collapse on diagonal cursor movement.
+
+Empathy mapping synthesized user emotional states across four quadrants: users verbalized (*Says*) confusion regarding button feedback; reflected (*Thinks*) anxiety regarding return logistics; manifested (*Does*) defensive behaviors such as scrolling immediately to the footer and taking screenshots of order screens for legal proof; and felt (*Feels*) cognitive fatigue from low-contrast typography.
+
+User Personas, Design Evolution, and Platform Implementation
+
+To ground interface requirements in validated empirical needs, two distinct archetypes were synthesized from our user research cohort:
+
+Primary Persona: Riyan Oswal (The Risk-Averse Student Shopper)
+
+Demographics: Age 20, 3rd-Year Undergraduate Student, Mumbai. Technical Profile: Intermediate proficiency; Primary: iOS Mobile; Secondary: Laptop. Behavior \& Pain Points: Operates on a defined budget; cautious due to past negative customer service experiences; checks footers and return policies *before* cart addition; suffers sizing anxiety over online garment fits. Persona Quote: ``I like this linen shirt, but if it doesn't fit my shoulders, will someone actually pick it up and refund my money without hassle? I need to know support is real before I pay.''
+
+Secondary Persona: Prisha (The Fast-Paced Urban Professional)
+
+Demographics: Age 24, Associate Product Designer, Mumbai. Technical Profile: Advanced proficiency; Desktop power user; keyboard navigation reliant. Behavior \& Pain Points: Extremely low tolerance for visual clutter, intrusive marketing popups, and slow reloads; frequently applies multi-attribute filters (e.g., Size M + Linen + Under Rs. 3,000); demands rapid one-click dismissals. Persona Quote: ``Don't force me through four dialogs or an imprecise slider when I know exactly what dimensions and fabric I want.''
+
+Traceability Matrix: User Needs to Design Requirements
+
+Table establishes clear traceability from observed field breakdowns to persona needs, implemented design solutions, and corresponding HCI principles.
+
+[htbp] {>{ }p{1.8cm}>{ }p{1.6cm}>{ }p{2.3cm}>{ }p{1.7cm}} Observed Pain Point & Persona Need & Implemented ASOLO Milano Feature & HCI Principle / Heuristic \\ Feedback vacuum on Add to Bag & Riyan \& Prisha: Instant action confirmation & Morphing button checkmark + non-modal slide-out cart drawer & Visibility of System Status (H1) \\ Imprecise slider overshoots budget & Prisha: Exact price filtering & Dual validated numeric inputs + persistent range bounds & Flexibility \& Efficiency (H7) \\ Sizing anxiety and return fears & Riyan: Certainty of garment fit & Fit Finder 3D: Interactive 3D silhouette + body helper & Error Prevention (H5) \& Mental Models \\ Visual fatigue from grey text (\#999999) & Riyan: Legible, credible information & High-contrast typography (\#1A1A1A on \#FFFFFF, 12.6:1) & Aesthetic \& Minimalist (H8), WCAG 2.1 \\ Context loss upon viewing cart & Prisha: Fluid, uninterrupted shopping & Non-modal flyout drawer preserving page position & User Control \& Freedom (H3) \\ Zero-result search dead-ends & Riyan: Fast recovery from null states & Empty state with 1-click `Clear All Filters' chip & Help Recover from Errors (H9) \\
+
+The platform progressed through three major developmental iterations:
+
+Iteration 1 (Low-Fidelity Wireframing): Drafted on a 12-column responsive spatial grid (Fig. ). Eliminated multi-tier mega-menus in favor of a persistent top navigation bar and a sticky 280 px left filter rail. Early peer feedback revealed that static size tables were consistently skipped by users. Iteration 2 (Interactive Prototyping): Implemented in HTML5, modular CSS3, and vanilla JavaScript. Replaced dual sliders with direct numeric inputs, fixed image containers (aspect ratio 3:4) to eliminate layout shift (CLS reduced from 0.21 to 0.00), and introduced a slide-out cart drawer. Iteration 3 (Fit Finder Integration): Integrated an interactive 3D body silhouette turntable to resolve Riyan's primary sizing hesitation prior to cart commit.
+
+Functional Implementation: ASOLO Milano \& 3D Fit Finder
+
+The final production prototype, ASOLO Milano (Fig. ), encapsulates four core architectural modules:
+
+Progressive Disclosure Product Grid: Product cards prioritize high-resolution photography and vital attributes (pricing, fabric GSM, and cut), revealing secondary sizing and care instructions only upon intentional user interaction. Sticky Faceted Filter Tokens: Dynamic filter chips stay anchored during scrolling. Users can dismiss individual tokens with a single click or clear all active states simultaneously. Instant Tactile Micro-Interactions: The ``Add to Bag'' CTA initiates zero-latency visual feedback, transforming smoothly into a green confirmation checkmark while simultaneously opening a non-modal slide-out drawer containing thumbnail previews, line-item adjustments, and subtotal summaries. Fit Finder 3D Turntable: Engineered using Three.js and calibrated MakeHuman mesh exports, the Fit Finder presents ten standardized body silhouettes across two gender-neutral sets (Women's Set: Hourglass, Pear, Apple, Rectangle, Inverted Triangle; Men's Set: Trapezoid, Rectangle, Triangle, Inverted Triangle, Oval). Shoppers rotate the 3D figure 360^ to inspect drape and cut balance. A client-side measurement helper calculates recommended sizes from bust/chest, waist, and hip inputs. Crucially, all biometric inputs remain in volatile browser memory and are never transmitted to a server, ensuring user privacy.
+
+Formal usability testing was administered with 12 participants (7 male, 5 female, aged 19--28 years, mean age = 22.4 ± 2.6 years). All participants were active apparel e-commerce consumers. Evaluations were conducted on standardized desktop workstations running Google Chrome v124 at 1920 1080 display resolution with uniform optical mice and 100 Mbps broadband connectivity in a quiet laboratory setting.
+
+To eliminate testing sequence bias, carry-over learning effects, and participant fatigue, the experiment utilized a **within-subjects, two-period counterbalanced design (AB/BA Latin Square)**:
+
+Cohort 1 (n=6): Evaluated Shoppers Stop (Benchmark) first, followed by ASOLO Milano (Prototype). Cohort 2 (n=6): Evaluated ASOLO Milano (Prototype) first, followed by Shoppers Stop (Benchmark).
+
+A mandatory 15-minute washout period was enforced between testing sessions.
+
+Participants executed four standardized, ecologically valid shopping tasks on both platforms:
+
+Task 1 (Category Discovery): Locate the menswear section and navigate to the shirt collection. Task 2 (Faceted Filtering): Apply a size filter (``Medium'') and establish a maximum price ceiling of Rs. 2,000. Task 3 (Product Evaluation \& Fit Selection): Inspect garment fabric, engage the size selection / Fit Finder 3D tool, and select the optimal variant. Task 4 (Cart Traversal \& Checkout): Add the selected item to the shopping bag and proceed to the checkout review gateway.
+
+Five standardized usability metrics were captured:
+
+Task Completion Rate (\ Task Completion Time (s): Duration recorded from initial user action to successful task termination. Operational Error Frequency: Count of non-productive misclicks, navigation regressions, and misapplied filter states per session. User Satisfaction (1--5): Post-task rating captured on a 5-point Likert scale (1 = , 5 = ). System Usability Scale (SUS): Standardized 10-item instrument yielding a composite score from 0 to 100 .
+
+Differences between platforms were statistically evaluated using two-tailed paired t-tests for continuous metrics (Task Time, SUS) and the non-parametric Wilcoxon signed-rank test for ordinal and count data (Errors, Satisfaction), with significance threshold = 0.05.
+
+Three independent HCI evaluators assessed both interfaces against Jakob Nielsen's Ten Usability Heuristics . Identified violations were graded on Nielsen's 0--4 severity scale: 0 = , 1 = , 2 = , 3 = , and 4 = . Evaluator ratings were averaged to yield composite severity scores per dimension.
+
+Results, Statistical Validation, and Accessibility Evaluation
+
+Empirical testing revealed dramatic, statistically significant performance enhancements on ASOLO Milano across all evaluation parameters. Table details the quantitative task results.
+
+[htbp] {lcccccc} Task / Platform Evaluation & Completion Rate & Mean Time (s) ± SD & Mean Errors ± SD & Satisfaction ± SD & Statistical Test & Effect Size (d or r) \\ T1: Discovery (Benchmark) & 83.3\ T1: Discovery (ASOLO Milano) & 100.0\ T2: Filtering (Benchmark) & 66.7\ T2: Filtering (ASOLO Milano) & 100.0\ T3: Evaluation \& Fit (Benchmark) & 75.0\ T3: Evaluation \& Fit (ASOLO) & 100.0\ T4: Cart Flow (Benchmark) & 75.0\ T4: Cart Flow (ASOLO Milano) & 100.0\ Overall Cumulative (Benchmark) & 75.0\ Overall Cumulative (ASOLO) & 100.0\
+
+Note: Time and error rows report task means; overall values reflect cumulative participant session sums. Significance verified via paired t-tests (times) and Wilcoxon signed-rank tests (errors and satisfaction, all W=0, p<0.001).
+
+As detailed in Table , ASOLO Milano attained a 100\
+
+Most notably, the composite System Usability Scale (SUS) score elevated from 54.5 ± 8.4 (Grade D, below acceptable usability) on Shoppers Stop to 88.5 ± 5.1 (Grade A+, superior usability) on ASOLO Milano. A paired t-test confirmed this SUS elevation of +34.0 points to be highly significant (t(11) = 12.89, p < 0.001, Cohen's d = 3.72).
+
+Table displays the comparative severity ratings assigned by three independent expert evaluators across Nielsen's Ten Usability Heuristics.
+
+[htbp] {>{ }p{2.6cm}>{ }p{1.2cm}>{ }p{1.2cm}>{ }p{0.8cm}>{ }p{1.8cm}} Nielsen Heuristic Dimension & Benchmark (Shoppers Stop) & Prototype (ASOLO) & Delta ( ) & Architectural Remediation \\ H1: Visibility of System Status & 3.67 & 0.33 & -3.34 & Morphing button + slide-out cart drawer \\ H2: Match System \& Real World & 1.67 & 0.33 & -1.34 & Tailored fabric GSM \& neutral silhouette taxonomy \\ H3: User Control \& Freedom & 3.00 & 0.67 & -2.33 & Non-modal drawer preserving scroll context \\ H4: Consistency \& Standards & 2.33 & 0.33 & -2.00 & Standardized 12-col spatial grid \\ H5: Error Prevention & 3.33 & 0.33 & -3.00 & Fit Finder 3D + disabled OOS sizes \\ H6: Recognition over Recall & 3.00 & 0.33 & -2.67 & Sticky faceted chips with 1-click dismiss \\ H7: Flexibility \& Efficiency & 2.67 & 0.67 & -2.00 & Dual numeric inputs + keyboard skip links \\ H8: Aesthetic \& Minimalist & 3.67 & 0.33 & -3.34 & Removed ad banners; CLS dropped to 0.00 \\ H9: Help Recover from Errors & 2.67 & 0.33 & -2.34 & Null state with 1-click filter reset button \\ H10: Help \& Documentation & 3.00 & 0.67 & -2.33 & 15-day return badge on cards + size helper \\ Mean Cumulative Severity & 2.90 (Major) & 0.43 (Clean) & -2.47 & 85.2\
+
+The expert audit confirms that the baseline storefront suffered from two Usability Catastrophes (H1 System Status, H8 Aesthetic Design) and five Major Usability Flaws (H3, H5, H6, H7, H10). On ASOLO Milano, cumulative mean heuristic severity dropped from 2.90 to 0.43, representing an **85.2\
+
+Accessibility Evaluation (WCAG 2.1 AA Audit)
+
+In strict compliance with accessibility standards, ASOLO Milano was audited across three core vectors:
+
+Color Contrast (WCAG 1.4.3): All primary typographic elements were locked to dark ink (\#1A1A1A) over clean parchment/white backgrounds (\#FFFFFF, \#F9F8F6), achieving a measured contrast ratio of **12.6:1**, exceeding the 4.5:1 AA threshold. Secondary metadata text is rendered at \#595959 (4.6:1 ratio). Keyboard Navigation (WCAG 2.1.1 \& 2.4.7): Implemented an invisible skip-navigation link as the first tabbable DOM node, routing directly to \#catalog. All interactive elements (chips, dialogs, drawers) display prominent :focus-visible indicator rings. Modal dialogs enforce strict focus traps (`Dialog.jsx`), returning focus to triggering elements upon dismissal. Automated Compliance Testing: Audited via Chrome Lighthouse and axe-core, achieving an Accessibility score of **98/100** with zero critical accessibility violations.
+
+The empirical results provide robust evidence that eliminating feedback vacuums, stabilizing layout shifts, and integrating a 3D silhouette Fit Finder directly mitigates interaction costs and elevates user delight. However, study limitations must be noted: testing was restricted to desktop Chrome environments with young adult university participants (N=12). Future research must evaluate mobile touch ergonomics and include older demographics to evaluate accessibility boundaries.
+
+This research demonstrated that systematic application of an end-to-end user-centred HCI framework significantly enhances digital apparel retail usability. Grounded in contextual inquiry and heuristic evaluation of Shoppers Stop, our redesign remediated critical friction points in feedback, filtering, and sizing uncertainty. Empirical evaluation (N=12) validated a 59.0\
+
+In alignment with emerging interaction paradigms, future work will expand along two multimodal frontiers:
+
+Voice User Interfaces (VUI) Embedding natural language speech queries (e.g., ``Show me slim-fit linen shirts under two thousand rupees'') with synchronized UI filtering, providing hands-free accessibility for motor-impaired shoppers. Glanceable Wearable Companion Interfaces: Developing smartwatch notifications delivering haptic order telemetry (real-time transit milestone alerts) and glanceable inventory drop notifications with wrist-based one-tap reordering.
