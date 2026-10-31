@@ -297,7 +297,7 @@ class _Extractor:
         return k2
 
 
-def extract(tex):
+def extract(tex, source_dir=None):
     """Returns (prose view, map). The map holds everything needed to rebuild the .tex file."""
     begin = re.search(r'\\begin\s*\{document\}', tex)
     finish = None
@@ -342,6 +342,8 @@ def extract(tex):
         'atoms': ex.atoms, 'pairs': ex.pairs, 'headings': ex.headings,
         'segments': segments, 'inputs': ex.inputs,
     }
+    if source_dir:
+        mapping['source_dir'] = os.path.abspath(source_dir)
     return ''.join(view_parts) + '\n', mapping
 
 
@@ -488,7 +490,7 @@ def verify(original_map, tex):
     return problems
 
 
-def compile_tex(path):
+def compile_tex(path, source_dir=None):
     """(ok, message). Builds the PDF twice so references resolve; the PDF lands next to the .tex file."""
     engine = None
     for name in ('pdflatex', 'xelatex', 'lualatex'):
@@ -506,10 +508,14 @@ def compile_tex(path):
     if not engine:
         return None, 'No LaTeX engine found (pdflatex, xelatex or lualatex). Compile the file yourself.'
     folder, name = os.path.split(os.path.abspath(path))
+    env = dict(os.environ)
+    if source_dir and os.path.isdir(source_dir):
+        existing = env.get('TEXINPUTS', '')
+        env['TEXINPUTS'] = f".:{os.path.abspath(source_dir)}//:{existing}"
     with tempfile.TemporaryDirectory() as build:
         for _ in range(2):
             r = subprocess.run([engine, '-interaction=nonstopmode', '-halt-on-error', '-output-directory',
-                                build, name], cwd=folder, capture_output=True, text=True, timeout=600)
+                                build, name], cwd=folder, env=env, capture_output=True, text=True, timeout=600)
             if r.returncode != 0:
                 errors = [line for line in r.stdout.splitlines() if line.startswith(('!', 'l.'))][:6]
                 return False, 'LaTeX failed:\n  ' + '\n  '.join(errors or r.stdout.splitlines()[-10:])
@@ -547,7 +553,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if args.command == 'extract':
-        view, mapping = extract(_read(args.tex))
+        source_dir = os.path.dirname(os.path.abspath(args.tex))
+        view, mapping = extract(_read(args.tex), source_dir=source_dir)
         _write(args.output, view)
         with open(args.map, 'w', encoding='utf-8') as f:
             json.dump(mapping, f, ensure_ascii=False, indent=1)
@@ -578,7 +585,8 @@ def main(argv=None):
         return 1
     print('Verified: every protected piece of LaTeX is unchanged.')
     if args.compile:
-        ok, message = compile_tex(args.output)
+        source_dir = mapping.get('source_dir')
+        ok, message = compile_tex(args.output, source_dir=source_dir)
         print(message)
         if ok is False:
             return 1

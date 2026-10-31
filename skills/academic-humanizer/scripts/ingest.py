@@ -157,7 +157,7 @@ def ingest(path, which=shutil.which, run=subprocess.run):
         return (None, None, problem) if text is None else (text, None, None)
     if low.endswith('.tex'):
         with open(resolved, encoding='utf-8') as f:
-            view, mapping = tex_extract(f.read())
+            view, mapping = tex_extract(f.read(), source_dir=os.path.dirname(os.path.abspath(resolved)))
         return view, mapping, None
     return None, None, (f'unsupported format; ingest handles {SUPPORTED}. '
                         'For anything else, save or export it as plain text first.')
