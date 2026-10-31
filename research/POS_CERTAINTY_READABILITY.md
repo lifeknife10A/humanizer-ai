@@ -4,24 +4,25 @@ This note records why the certainty and readability checks were added to
 [`check_draft.py`](../skills/academic-humanizer/scripts/check_draft.py) in v7.14.0, and where
 the claims behind them come from.
 
-**Status and honesty label.** The grounding below is an **author-supplied gap analysis**
-citing papers labelled [P01]–[P05]. Unlike the sources in
-[`LITERATURE_REVIEW.md`](LITERATURE_REVIEW.md), these have **not yet been checked against their
-primary records**, and none of the new checks has been validated against this repo's own ZeroGPT
-benchmarks. They follow the same rule the v7.13.1 field-guide additions did
-([`WIKIPEDIA_SIGNS.md`](WIKIPEDIA_SIGNS.md) §7): **they WARN, they never FAIL.** When a paper
-here is verified or a benchmark is run, update this file and move the confirmed items into
-`LITERATURE_REVIEW.md`.
+**Status and primary-record verification.** The papers cited below ([P01]–[P05]) have now been
+ingested, verified against their full primary PDF records, converted to markdown, and indexed in
+[`LITERATURE_TRACKER.md`](LITERATURE_TRACKER.md). The original PDFs and converted full texts are
+preserved under `research/literature/pdfs/` and `research/literature/markdown/`.
 
-## The author-supplied sources
+The new checks follow the same conservative rule the v7.13.1 field-guide additions did
+([`WIKIPEDIA_SIGNS.md`](WIKIPEDIA_SIGNS.md) §7): **they WARN, they never FAIL.** When a check
+here is validated against this repo's own ZeroGPT benchmark corpus, update this file and move
+the confirmed items into `LITERATURE_REVIEW.md`.
 
-| Ref | As described by the gap analysis | Used for |
-| :--- | :--- | :--- |
-| **[P01]** | Turnitin: 5–10 sentence segment windows striding one sentence; AIR-1 (July 2024) targets paraphrase | Already covered: run grouping (`flagged_runs.py`) and the Phase 4 "synonym swaps don't clear a run" guidance |
-| **[P02]** | Russell & Iyyer, "StoryScope": AI converges on a ~0.49 centroid, humans occupy a 0.71+ rarity tail; discourse structure alone detects AI at 93.2% F1; AI over-moralizes (~77% vs ~52%) | Reinforces the fact sheet (rarity tail) and the new friction-preservation reread; anti-preaching is already S9 |
-| **[P03]** | Ahlawat: commercial humanizers degrade rigor (inject typos, drop content) | Reinforces H1–H5; no new check |
-| **[P04]** | Rodrigues et al. (iScience, SAGE log-odds): top AI n-grams match `STOCK_PHRASES`; AI shows +152% "certain" and +67% "cause" markers | **Certainty check** |
-| **[P05]** | LASSO study: pronouns are the strongest negative predictor of AI (weight −99.28), auxiliaries −21.30, nouns +21.17; AI packs ~146 difficult words vs ~95, Flesch Reading Ease ~28 vs ~55, FK grade ~13.8 vs ~10.3; passive voice 11% (AI) vs 34% (human) | **Readability check**; **S10 refinement** (passive voice); pronoun/nominalization deferred |
+## The verified primary sources (Indexed in LITERATURE_TRACKER.md)
+
+| Ref | Verified Paper & Source | Primary Record | Used for |
+| :--- | :--- | :--- | :--- |
+| **[P01]** | Turnitin AI Technical Staff (Aug 2024 White Paper): 5–10 sentence segment windows striding one sentence; AIR-1 (July 2024) targets paraphrase | [`turnitin_ai_writing_...md`](literature/markdown/turnitin_ai_writing_detection_architecture_testing.md) | Already covered: run grouping (`flagged_runs.py`) and Phase 4 "synonym swaps don't clear a run" guidance |
+| **[P02]** | Russell, Rajendhran, Pham, Iyyer & Wieting (COLM 2026 / UMD & Google DeepMind): AI converges on ~0.49 centroid, humans occupy 0.71+ rarity tail; discourse structure alone detects AI at 93.2% F1; AI over-moralizes (77% vs 52%) | [`investigating_idiosyncrasies_...md`](literature/markdown/investigating_idiosyncrasies_in_ai_fiction.md) | Reinforces the fact sheet (rarity tail) and the new friction-preservation reread; anti-preaching is already S9 |
+| **[P03]** | Ahlawat, Venugopal, Karlapalam, Vekkot & Joshi (IEEE ICAISS-2025): BERT vs RoBERTa vs DistilBERT on 487k essays; 39.5% evasion gap; probability narrowness hovering at 45%–58% | [`identifying_ai_generated_...md`](literature/markdown/identifying_ai_generated_text_designed_to_evade_plagiarism_detection.md) | Reinforces H1–H5; explains why NSP-breaking sentence inversion works |
+| **[P04]** | Rodrigues, Sturm & Pinheiro (Cell Press / iScience, March 2026): SAGE log-odds top AI n-grams match `STOCK_PHRASES`; AI shows +152% "certain" and +67% "cause" markers; human text anchored by dates/numbers | [`a_linguistic_comparison_...md`](literature/markdown/a_linguistic_comparison_between_human_and_ai_generated_content.md) | **Certainty check**; validates Fact Sheet grounding |
+| **[P05]** | Georgiou (MDPI / Information, Nov 2025): LASSO penalized regression on 94 linguistic features: pronouns −99.28, auxiliaries −21.30, nouns +21.17; difficult words ~146 vs ~95, Flesch Reading Ease ~28 vs ~55; passive voice 11% (AI) vs 34% (human) | [`differentiating_between_...md`](literature/markdown/differentiating_between_human_written_and_ai_generated_texts_using_automatically_extracted_linguistic_features.md) | **Readability check**; **S10 refinement** (passive voice); pronoun/nominalization deferred |
 
 ## What was adopted in v7.14.0
 
