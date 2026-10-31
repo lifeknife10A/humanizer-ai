@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 2 Draft Checker (v7.13.1)
+Academic Humanizer: Phase 2 Draft Checker (v7.14.0)
 
 Compares a rewritten draft against its source text and an optional
 author-supplied fact sheet. It reports problems; it never rewrites text.
@@ -16,6 +16,7 @@ Fact checks (WARN):
   - word retention above --max-retention
   - fewer hedges of a kind (possibility, frequency, evidential) than the source
   - more "must" than the source
+  - more certainty markers ("clearly", "undeniably", "definitively") than the source
   - source sentences whose content words are largely missing (possible drops)
 
 LaTeX placeholders (FAIL): when the source is a prose view written by
@@ -27,8 +28,12 @@ Style checks (WARN): sentences over --max-words, semicolons, reveal colons, em d
 stock AI phrases, mid-sentence ", however,", participial tails, three-item
 lists, duplicate sentences, runs of sentences opening with the same word,
 restatement padding, three sentences in a row sharing an opening frame,
-too few short sentences (below --min-short), and overused add-ons
-("C too.", "C as well.", "also", "alongside", "along with", "together with").
+too few short sentences (below --min-short), overused add-ons
+("C too.", "C as well.", "also", "alongside", "along with", "together with"),
+and a very low Flesch Reading Ease (artificially dense vocabulary).
+
+The report also prints Flesch Reading Ease and Flesch-Kincaid grade as
+informational stats.
 
 Usage:
   check_draft.py SOURCE [--facts FACTS]          print the fact ledger
@@ -118,6 +123,15 @@ HEDGE_CLASSES = {
                  r'|(?<!not )only)\b'),
 }
 MUST = re.compile(r'\bmust\b', re.IGNORECASE)
+# Unearned certainty the draft adds beyond the source. LLMs overclaim confidence
+# (author-supplied analysis [P04]/[P05] in research/POS_CERTAINTY_READABILITY.md;
+# not benchmark-validated). Warn-only, and only when the draft has more than the source,
+# exactly like the `modal`/"must" check.
+CERTAINTY = re.compile(
+    r'\b(?:clearly|undeniably|undoubtedly|unquestionably|indisputably|incontrovertibly'
+    r'|definitively|certainly|obviously|evidently|plainly|assuredly'
+    r'|without (?:a )?doubt|beyond (?:any )?doubt|needless to say)\b',
+    re.IGNORECASE)
 DROP_STOPWORDS = set(
     'that this these those with from into have been their there which while where when what about across '
     'through under over than then they them also such some more most only very will would should could '
@@ -144,6 +158,12 @@ MAX_ADD_ON_ENDINGS = 2
 MAX_CONNECTOR_SHARE = 0.06
 ACRONYM_DEFINITION = re.compile(r'\(([A-Za-z][A-Za-z-]{1,15})\)')
 ACRONYM_STOPWORDS = {'of', 'and', 'the', 'for', 'in', 'on', 'to', 'a', 'an', 'by', 'with'}
+# Flesch Reading Ease below this reads as artificially dense vocabulary: AI packs in Latinate
+# "difficult words" (author-supplied analysis [P05]: AI ~28 vs human ~55, in
+# research/POS_CERTAINTY_READABILITY.md). Warn-only and informational; academic prose is dense
+# by nature, so this never fails and never asks for a technical term to be swapped out (H2).
+FLESCH_EASE_FLOOR = 30.0
+VOWEL_GROUP = re.compile(r'[aeiouy]+')
 
 Sentence = namedtuple('Sentence', 'para index text heading')
 
@@ -325,6 +345,29 @@ def _word_set(text):
     return set(re.findall(r'[a-z0-9]+', text.lower()))
 
 
+def _syllables(word):
+    """A stdlib heuristic: count vowel groups, less a silent trailing 'e'. Good enough for Flesch."""
+    word = re.sub(r'[^a-z]', '', word.lower())
+    if not word:
+        return 0
+    count = len(VOWEL_GROUP.findall(word))
+    if word.endswith('e') and not word.endswith(('le', 'ie', 'ee', 'ye')) and count > 1:
+        count -= 1
+    return max(1, count)
+
+
+def _readability(sentences):
+    """Flesch Reading Ease and Flesch-Kincaid grade over the sentences; (0.0, 0.0) if there is no prose."""
+    words = [w for s in sentences for w in re.findall(r'[A-Za-z]+', s.text)]
+    if not words or not sentences:
+        return 0.0, 0.0
+    words_per_sentence = len(words) / len(sentences)
+    syllables_per_word = sum(_syllables(w) for w in words) / len(words)
+    ease = 206.835 - 1.015 * words_per_sentence - 84.6 * syllables_per_word
+    grade = 0.39 * words_per_sentence + 11.8 * syllables_per_word - 15.59
+    return round(ease, 1), round(grade, 1)
+
+
 def _sort_numbers(numbers):
     return sorted(numbers, key=float)
 
@@ -388,6 +431,11 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
         for s in draft_sentences:
             if MUST.search(s.text):
                 add('WARN', 'modal', '"must" is stronger than the source; keep the source\'s modal', s)
+    if len(CERTAINTY.findall(draft)) > len(CERTAINTY.findall(source)):
+        for s in draft_sentences:
+            if CERTAINTY.search(s.text):
+                add('WARN', 'certainty', 'this certainty marker is not earned by the source; '
+                    'state what the results show instead of asserting confidence', s)
 
     draft_stems = _stems(draft)
     for s in source_sentences:
@@ -478,6 +526,11 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
     if len(lengths) >= 10 and short_share < min_short:
         add('WARN', 'short-sentences', f'only {short_share:.1f}% of sentences have 5 words or fewer '
             f'(minimum {min_short:g}%); lead with a claim\'s core, never a split-off modifier')
+    flesch_ease, flesch_grade = _readability(prose)
+    if len(prose) >= 10 and flesch_ease < FLESCH_EASE_FLOOR:
+        add('WARN', 'readability', f'Flesch Reading Ease {flesch_ease:.1f} (below {FLESCH_EASE_FLOOR:g}); '
+            'the vocabulary is dense. Where the source uses a plainer word, prefer it. '
+            'Never swap out a technical term to raise the score (H2)')
     stats = {
         'source_words': source_words,
         'draft_words': draft_words,
@@ -487,6 +540,8 @@ def check(source, draft, facts='', min_retention=95.0, max_retention=110.0, max_
         'max_length': max(lengths) if lengths else 0,
         'short_share': round(short_share, 1),
         'length_burstiness': round(statistics.stdev(lengths) / mean, 2) if len(lengths) > 1 and mean else 0.0,
+        'flesch_reading_ease': flesch_ease,
+        'flesch_kincaid_grade': flesch_grade,
     }
     return {
         'findings': findings,
@@ -502,7 +557,8 @@ def _excerpt(text, limit=110):
 
 def format_report(result):
     stats = result['stats']
-    fact_kinds = {'placeholder', 'new-number', 'missing-number', 'new-term', 'retention', 'hedge', 'modal', 'possible-drop'}
+    fact_kinds = {'placeholder', 'new-number', 'missing-number', 'new-term', 'retention',
+                  'hedge', 'modal', 'certainty', 'possible-drop'}
     facts = [f for f in result['findings'] if f['kind'] in fact_kinds]
     style = [f for f in result['findings'] if f['kind'] not in fact_kinds]
 
@@ -532,6 +588,7 @@ def format_report(result):
         '=== STATS (informational) ===',
         f'Sentences: {stats["sentences"]}  Mean length: {stats["mean_length"]}  Max length: {stats["max_length"]}',
         f'Short sentences (<=5 words): {stats["short_share"]}%  Length burstiness (stdev/mean): {stats["length_burstiness"]}',
+        f'Flesch Reading Ease: {stats["flesch_reading_ease"]}  Flesch-Kincaid grade: {stats["flesch_kincaid_grade"]}',
         '',
         f'RESULT: {"PASS" if result["passed"] else "FAIL"} ({fails} failures, {warns} warnings)',
     ]
@@ -569,7 +626,7 @@ def _read(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.13.1)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.14.0)')
     parser.add_argument('source', help='Original text file')
     parser.add_argument('draft', nargs='?', help='Rewritten draft (omit to print the fact ledger)')
     parser.add_argument('--facts', help='Author-supplied fact sheet')

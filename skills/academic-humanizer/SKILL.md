@@ -2,7 +2,7 @@
 name: academic-humanizer
 description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Works on plain text, Word, PDF, or LaTeX source: scripts/ingest.py turns .txt, .md, .docx and .pdf files into plain text, and for a .tex file the pipeline rewrites only the prose and returns the complete .tex, with math, citations and commands untouched. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
 metadata:
-  version: "7.13.1"
+  version: "7.14.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.13.1)
+# Academic Humanizer (v7.14.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -89,6 +89,7 @@ When the source is a `.tex` file, never rewrite the LaTeX directly. `scripts/lat
    - each purpose is still a purpose: "implemented to evaluate X" must not become "we compared X"
    - findings are hedged exactly as strongly as in the source
    - no count was added that the source doesn't state ("all three", "two processes")
+   - the source's caveats are still there. Every limitation, edge case, boundary condition, failure mode, trade-off and parameter sensitivity the source raises stays in the rewrite, with the same weight. AI drafts tend to smooth real science into one tidy, single-track story; don't help them. Where the source is messy or qualified, keep it messy and qualified. Never invent a caveat or a limitation the source doesn't state (H3) just to add texture; this is about keeping the friction that is already there, not manufacturing it.
 
    Fix `draft.txt` before moving on.
 5. **Check (Phase 2).**
@@ -106,8 +107,10 @@ When the source is a `.tex` file, never rewrite the LaTeX directly. `scripts/lat
    - `add-on` WARN: work the item in another way (see S5) instead of tacking it on with "too", "as well", or "also".
    - `restatement` WARN: the short sentence only repeats its neighbours ("Robustness requires fundamental advances." right after "achieving robust LLMs will require fundamental advances"). Delete it; never pad to reach the short-sentence share.
    - `parallel` WARN: three sentences in a row open the same way ("Syntactic attacks manipulate… Semantic attacks exploit… Jailbreak attacks circumvent…"). Change the shape of at least one (S5).
+   - `readability` WARN: the Flesch Reading Ease is very low, so the vocabulary is artificially dense. Where the source uses a plainer word, use it too. Never swap out a technical term, acronym or proper name to raise the score (H2); an honest dense score is better than a changed meaning. This warning is informational and never a FAIL.
    - `hedge` WARN: the quoted source sentence has a hedge ("may", "often", "suggesting") your draft lost. Put it back in the matching draft sentence.
    - `modal` WARN: use the source's modal; "should" stays "should", never "must".
+   - `certainty` WARN: the draft added an unearned certainty marker ("clearly", "undeniably", "definitively", "certainly"). Delete it, or state what the results actually show. Keep a certainty word only if the source has it.
    - `possible-drop` WARN: most words of the quoted source sentence are gone from the draft. Find where its content went; if it was dropped, restore it.
    - Other style WARNs: fix each one unless the fix would break a hard constraint.
 
@@ -211,7 +214,7 @@ Apply these within the hard constraints. When a style rule and a hard constraint
 - **S7. Tails and "however".** Split ", cutting X..." into ". This cut X...". Rewrite "X, however, Y" as "Yet X Y" or as two sentences.
 - **S8. Stock phrasing.** Cut: Furthermore, Moreover, Additionally, Notably, Ultimately, In conclusion, In summary, In short, It is important/crucial to note, pivotal, vital role, integral role, tapestry, delve into, testament, paramount, transformative potential, the landscape of, cornerstone, synergy, holistic, and "To address these challenges, we...". When the phrase carries meaning, keep the meaning in plain words: "the transformative potential of X" becomes "how X could transform...".
 - **S9. Conclusions.** Rewrite mandates ("must deploy", "is paramount for", "is vital to", "hinges on") as plain recommendations ("should", "we recommend"). These are recommendations, not findings, so H3's hedging rule doesn't apply to them. Don't turn a stated dependency ("success depends on X") into a recommendation, and don't add a mechanism the source doesn't describe.
-- **S10. Authors' voice.** Where the source describes the authors' own work, prefer what they did over abstract nouns ("We sorted the attacks into four groups" over "The framework categorizes attacks into four dimensions"). This is the style that cleared the most highlighted runs in Phase 4.
+- **S10. Authors' voice, used selectively.** Where the source describes the authors' own reasoning, framing or claims, prefer what they did over abstract nouns ("We sorted the attacks into four groups" over "The framework categorizes attacks into four dimensions"). This is the style that cleared the most highlighted runs in Phase 4. But don't convert every passive sentence to "we". Real academic prose keeps the passive voice for methods and objective observations ("The precursor was calcined at 900 °C", "Area-specific resistance rose by 312%"), and over-converting those into a wall of "We heated… We measured… We observed…" reads less like peer-reviewed work, not more. So: active "we" for authorial stance and claims; keep the source's passive for procedures and physical results. Follow the source's own voice when in doubt, and never add a first-person action the source doesn't state (H3).
 
 ## Examples
 

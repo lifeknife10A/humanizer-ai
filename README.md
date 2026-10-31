@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9+-green.svg)](https://python.org)
-[![Tests: Passing](https://img.shields.io/badge/Tests-83%20Passing-brightgreen.svg)](tests/)
+[![Tests: Passing](https://img.shields.io/badge/Tests-108%20Passing-brightgreen.svg)](tests/)
 [![ZeroGPT Target: <10%](https://img.shields.io/badge/ZeroGPT-2.9%25%20Achieved-success.svg)](benchmarks/)
 
 **Humanizer-AI** is an empirically validated, open-source pipeline designed to transform AI-generated academic papers, theses, and technical reports into authentic scholarship that reliably scores **< 10% AI (or 0%)** on ZeroGPT, Turnitin, and GPTZero in **a single turnkey iteration** while strictly preserving full manuscript length and factual accuracy.
@@ -22,7 +22,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 
 ---
 
-## System Architecture: Fact-Sheet Pipeline (v7.13.0)
+## System Architecture: Fact-Sheet Pipeline (v7.14.0)
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
@@ -52,9 +52,9 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 │ • FAIL: invented number, dropped number, retention < 95%        │  │
 │ • WARN: new acronym/formula, long sentence, stock phrase,       │  │
 │   semicolon, colon, tail, triad, duplicate, repeated opening,   │  │
-│   too few short sentences, "too"/"also" add-ons                 │  │
-│ • WARN (fidelity): lost hedges, stronger "must", dropped        │  │
-│   source sentences, near-duplicate sentences                    │  │
+│   too few short sentences, add-ons, low Flesch reading ease     │  │
+│ • WARN (fidelity): lost hedges, stronger "must", added          │  │
+│   certainty, dropped source sentences, near-duplicates          │  │
 │ • Reports only. It never rewrites text.                         │  │
 └────────────────────────────────┬────────────────────────────────┘  │
                                  ▼                                   │
@@ -209,6 +209,7 @@ python3 -m unittest discover -s tests
 - **[research/TURNITIN_NOTES.md](research/TURNITIN_NOTES.md)**: Turnitin digest: similarity vs AI detection, accuracy claims with source labels, and what they imply for Phase 4.
 - **[research/AI_DETECTION_MECHANICS.md](research/AI_DETECTION_MECHANICS.md)**: How AI text detectors work at the lowest level: the score-and-threshold mechanism, the five detection families, and why no threshold can be reliable.
 - **[research/WIKIPEDIA_SIGNS.md](research/WIKIPEDIA_SIGNS.md)**: Digest of Wikipedia's "Signs of AI writing" field guide: the human-reviewer tells, era drift in AI vocabulary, signs of *human* writing, and which signs were adopted into the checker (v7.13.1).
+- **[research/POS_CERTAINTY_READABILITY.md](research/POS_CERTAINTY_READABILITY.md)**: Grounding for the v7.14.0 certainty, readability and passive-voice changes, with the author-supplied sources labelled as not-yet-verified and warn-only.
 
 ---
 

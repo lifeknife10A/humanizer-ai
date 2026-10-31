@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 2 Draft Checker (v7.13.1)
+Unit Test Suite for the Phase 2 Draft Checker (v7.14.0)
 Validates fact extraction, fact-sheet enforcement, and style warnings.
 """
 
@@ -280,6 +280,56 @@ class TestBenchmarks(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestCertainty(unittest.TestCase):
+
+    def test_added_certainty_warns(self):
+        source = "Results suggest larger models resist attacks less often than expected in these runs."
+        draft = "Results clearly and undeniably show larger models resist attacks less often than expected."
+        self.assertIn('certainty', kinds(check(source, draft)))
+
+    def test_certainty_in_source_is_allowed(self):
+        source = "The mechanism is clearly established in the published literature for these systems."
+        draft = "The mechanism is clearly established across the published literature for these systems."
+        self.assertNotIn('certainty', kinds(check(source, draft)))
+
+    def test_certainty_is_grouped_with_fact_findings(self):
+        source = "Results suggest larger models resist attacks less often than expected in these runs."
+        draft = "Results obviously show larger models resist attacks less often than expected in runs."
+        from check_draft import format_report
+        report = format_report(check(source, draft))
+        fact_block = report.split('=== STYLE CHECK ===')[0]
+        self.assertIn('certainty', fact_block)
+
+
+class TestReadability(unittest.TestCase):
+
+    DENSE = ("The multifaceted characterization fundamentally necessitates comprehensive interdisciplinary "
+             "methodological considerations regarding electrochemical degradation phenomena. ") * 12
+    PLAIN = ("We ran the test and it worked well for the whole team that day. ") * 12
+
+    def test_stats_include_flesch(self):
+        stats = check(self.PLAIN, self.PLAIN)['stats']
+        self.assertIn('flesch_reading_ease', stats)
+        self.assertIn('flesch_kincaid_grade', stats)
+
+    def test_dense_vocabulary_warns(self):
+        self.assertIn('readability', kinds(check(self.DENSE, self.DENSE)))
+
+    def test_plain_vocabulary_does_not_warn(self):
+        self.assertNotIn('readability', kinds(check(self.PLAIN, self.PLAIN)))
+
+    def test_readability_never_fails(self):
+        result = check(self.DENSE, self.DENSE)
+        self.assertNotIn('readability', kinds(result, 'FAIL'))
+
+    def test_syllable_heuristic(self):
+        from check_draft import _syllables
+        self.assertEqual(_syllables('cat'), 1)
+        self.assertEqual(_syllables('cradle'), 2)
+        self.assertEqual(_syllables('interdisciplinary'), 7)
+        self.assertEqual(_syllables('the'), 1)
 
 
 class TestFieldGuidePhrases(unittest.TestCase):
