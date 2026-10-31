@@ -1,6 +1,6 @@
 # AI-text detection and meaning-preserving rewriting: a grounded literature review
 
-*Compiled 2026-10-04. I checked every paper below against its arXiv record (title, authors, date) and pulled every quoted number from the paper's own text or abstract. Vendor statements are labelled **[vendor claim]**. Statements that are my inference are labelled **[inference]**.*
+*Compiled 2026-10-04. I checked every paper below against its arXiv record (title, authors, date) and pulled every quoted number from the paper's own text or abstract. Vendor statements are labelled **[vendor claim]**. Statements that are my inference are labelled **[inference]**. See also [AI_DETECTION_MECHANICS.md](AI_DETECTION_MECHANICS.md) (the score-and-threshold model and the five detection families, with the Wikipedia-sourced reliability numbers) and [TURNITIN_NOTES.md](TURNITIN_NOTES.md).*
 
 ---
 
