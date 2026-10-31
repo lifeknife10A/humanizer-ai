@@ -268,9 +268,33 @@ the harness:
 
 ### 8.2 Stage 2 — deferred; here is the minimal shape if it is ever built
 
-Do not build Stage 2 until (a) the ablation shows Stage 1 (plus the other
-validated deterministic transforms) plateaus above the target, and (b) Phase 4
-detector feedback — the one proven score-mover (27% → 5.3%) — has been exhausted.
+**Status update (Ablation Study 1):** condition (a) is now met — deterministic
+surface tricks were empirically killed. `clause_split` was null (75%→77%) and
+`lexical_register` was *worse* (75%→91%, triggering Turnitin's AIR-1 paraphrase
+classifier, which flags "AI text revised by AI" — exactly what mechanical swapping
+looks like). So the **gate + plumbing scaffold** has been built
+(`research/scripts/stage2_rephraser.py`): pluggable `Generator`
+(Null/File/Ollama), the strict `FidelityGate`, paragraph-level loop, and a
+"gate an external draft" mode. What is **not** built or validated is the
+generator itself and — the real crux — a guidance signal that transfers to
+Turnitin.
+
+One correction baked into the scaffold: a rephraser must **not** require
+content-lemma *equality* (that is the splitter's gate and would reject every real
+paraphrase). Meaning is instead guarded by semantic similarity (SBERT ≥ 0.90,
+with a content-stem-overlap fallback), while numbers and terms stay hard-exact.
+
+Two cautions still stand before investing further:
+- Best-of-N's value is the selection step, and **no local proxy is known to track
+  Turnitin** (label study at chance; AuthorMist 2% cross-detector). The scaffold's
+  default `NullScorer` expresses no preference for this reason.
+- AIR-1 flags *AI-revised* text; a base model revising AI text is still AI
+  revising AI text. Whether cohesive neural regeneration evades AIR-1 at all is an
+  open empirical question — test it with ~4 Turnitin submissions before scaling.
+
+Do not build the full generative loop until (b) Phase 4 detector feedback — the
+one proven score-mover (27% → 5.3%) — has been tried, and the cheap spike above
+shows cohesive regeneration beats AIR-1.
 
 When/if justified, the minimal design that does **not** forfeit Zero-Hallucination
 is **per-sentence best-of-n with hard rejection**, not per-token logit steering:
