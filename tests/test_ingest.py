@@ -154,6 +154,23 @@ class TestCli(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertTrue(os.path.exists(os.path.join(d, 'source.map.json')))
 
+    def test_directory_ingest_finds_root_tex(self):
+        with tempfile.TemporaryDirectory() as d:
+            paper_tex = os.path.join(d, 'conference_paper.tex')
+            notes_txt = os.path.join(d, 'readme.txt')
+            with open(paper_tex, 'w', encoding='utf-8') as f:
+                f.write('\\documentclass{IEEEtran}\n\\begin{document}\nWe report 95\\% gain.\n\\end{document}\n')
+            with open(notes_txt, 'w', encoding='utf-8') as f:
+                f.write('Some readme notes.\n')
+            out = os.path.join(d, 'source.txt')
+            r = subprocess.run([sys.executable, os.path.join(SCRIPTS, 'ingest.py'), d, '-o', out],
+                               capture_output=True, text=True, cwd=SCRIPTS)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn('conference_paper.tex', r.stdout)
+            with open(out, encoding='utf-8') as f:
+                self.assertIn('We report 95% gain.', f.read())
+            self.assertTrue(os.path.exists(os.path.join(d, 'source.map.json')))
+
 
 if __name__ == '__main__':
     unittest.main()

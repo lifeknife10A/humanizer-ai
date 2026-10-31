@@ -1,8 +1,8 @@
 ---
 name: academic-humanizer
-description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Works on plain text, Word, PDF, or LaTeX source: scripts/ingest.py turns .txt, .md, .docx and .pdf files into plain text, and for a .tex file the pipeline rewrites only the prose and returns the complete .tex, with math, citations and commands untouched. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
+description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Native support for LaTeX papers and project folders (IEEEtran, ACM, Springer, etc.): scripts/ingest.py auto-detects root documents from directories or files, and for a .tex source the pipeline rewrites only the prose, strictly protects math, citations, tables and commands, and restores a verified, compilable .tex and PDF. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
 metadata:
-  version: "7.15.0"
+  version: "7.16.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.15.0)
+# Academic Humanizer (v7.16.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -24,7 +24,7 @@ The work happens in four phases. You rewrite the text and reread it against the 
 
 | Input | Required | What it is |
 | :--- | :--- | :--- |
-| Source text | Yes | The text to rewrite: pasted text, or a `.txt`, `.md`, `.docx`, `.pdf`, or `.tex` file. Every number, term, claim, and list item in it must survive. |
+| Source text | Yes | The text to rewrite: pasted text, or a `.txt`, `.md`, `.docx`, `.pdf`, `.tex` file, or a LaTeX project directory. Every number, term, claim, and list item in it must survive. |
 | Fact sheet | No | Real details from the author (parameters, instrument settings, results, citations) that may be added. Template: `fact_sheet_template.md` in this skill's directory. |
 
 The fact sheet is the only place added specifics can come from. Without one, you keep length by unpacking sentences and add no new detail.
@@ -35,32 +35,61 @@ If no fact sheet was given, don't stop to ask for one. Work from the source alon
 
 Start with the work, not with preamble. Do not restate the task, summarize the input, announce the rules you are about to follow, or warn the user about what detectors might think of the text. Do not pad the delivery with offers of unrelated help. If part of the job cannot be done (Python unavailable, a missing tool, a file that won't read), say so in one line at the top and complete everything else. The draft and the reports of step 7 are the reply.
 
-## LaTeX sources
+## LaTeX & Academic Paper Workflow (Primary Mode)
 
-When the source is a `.tex` file, never rewrite the LaTeX directly. `scripts/latex_prose.py` turns it into a plain-text prose view, you run the whole procedure on that view, and the script rebuilds the `.tex` file from your rewrite.
+When the source is a `.tex` file or a LaTeX project folder (e.g. IEEE conference papers like `HCI_Conference_Paper.tex` in `HCI paper Prism`), **never rewrite the LaTeX source code directly**. `scripts/ingest.py` and `scripts/latex_prose.py` extract a pure prose view with numbered placeholders protecting all LaTeX code, allowing full humanization of the text before byte-perfect restoration and PDF compilation.
 
-1. **Extract the prose view.**
+### 1. Document Anatomy & Protected Elements
+Academic LaTeX sources (particularly `IEEEtran`, ACM `acmart`, Springer `llncs`, Elsevier, or report classes) contain specialized structural components that the pipeline protects:
+
+- **Frontmatter & Author Metadata**:
+  - Preamble packages, macros (e.g. `\newcommand{\linebreakand}{...}`), and document setups (`\raggedbottom`, `\IEEEoverridecommandlockouts`) are untouched.
+  - Multi-author and affiliation blocks (`\IEEEauthorblockN`, `\IEEEauthorblockA`, `\and`, `\linebreakand`, emails, and ORCID links) are completely preserved inside atomic placeholders (`⟦1⟧`, `⟦2⟧`, ...).
+  - Abstract & Keywords: `\begin{abstract}` and `\end{abstract}` keep their boundary placeholders; only the internal prose is humanized. Index terms/keywords (`\begin{IEEEkeywords}...\end{IEEEkeywords}`) are preserved as fixed metadata.
+
+- **Section Hierarchy & Conference Rubrics**:
+  - Headings (`\section{...}`, `\subsection{...}`, `\subsubsection{...}`) are wrapped in `⟦n⟧...⟦/n⟧`.
+  - **Rubric Preservation Rule**: When a paper adheres to a formal conference structure (such as the IEEE 7-section alignment: *I. Introduction and Research Objectives*, *II. Literature Survey and Research Gap*, *III. Problem Diagnosis*, *IV. Implementation*, *V. Experimental Methodology*, *VI. Results and Statistical Validation*, *VII. Conclusion*), **do not rewrite or invent new section titles**. Keep established headings faithful to the submission rubric; concentrate humanization on the interior narrative.
+
+- **Floating Environments & Data Tables**:
+  - Tables (`\begin{table}`, `\begin{table*}`, `tabular`, `booktabs` `\toprule`/`\midrule`/`\bottomrule`, `\multirow`, `\multicolumn`), figures (`\begin{figure}`, `\includegraphics`), captions, and labels (`\label{tab:...}`, `\label{fig:...}`) remain 100% protected atomic placeholders. Captions and cell data are not scrambled.
+
+- **Formulas, Inline Math & Empirical Statistics**:
+  - Inline math (`$N=12$`, `$94.2 \pm 14.6$`, `$t(11)=13.42, p<0.001$`, `$W=0, p<0.001$`, `$\Delta$`, `$\mathbf{...}$`) and display math (`equation`, `align`) are converted into atomic placeholders (`⟦7⟧`, `⟦8⟧`).
+  - Rewriting adjusts the sentences *around* the placeholder without disturbing the exact mathematical, statistical, or effect size notation.
+
+- **Citations & Cross-References**:
+  - Citations (`~\cite{norman2013design}`) and section/table/figure references (`~\ref{tab:lit}`) are attached to claims. The non-breaking space `~` travels with the placeholder so LaTeX typesets without orphaned citation blocks.
+
+- **Itemized and Enumerated Lists**:
+  - Lists (`\begin{itemize}`, `\begin{enumerate}`) retain `\item` placeholders (`⟦22⟧`). In structured items (e.g. `\item \textbf{Iteration 1 (Wireframing):} ...`), keep the `\item` and label wrapper, rewriting the interior description into humanized, natural syntax.
+
+### 2. Execution Pipeline for LaTeX
+
+1. **Extract the prose view.** Works on either a `.tex` file or an entire project directory:
    ```bash
-   python3 SKILL_DIR/scripts/latex_prose.py extract paper.tex -o source.txt --map paper.map.json --legend legend.txt
+   python3 SKILL_DIR/scripts/ingest.py "/path/to/folder or paper.tex" -o source.txt --map paper.map.json --legend legend.txt
    ```
-   `source.txt` is the source for every step below. Each piece of LaTeX the rewrite must not touch is replaced by a placeholder, and `legend.txt` lists what each one holds:
-   - `⟦12⟧` keeps LaTeX exactly as it is: inline and display math, `\cite`, `\ref`, `\label`, comments, figures and tables (captions included), other environments and commands. Keep every one exactly once, at the same spot in its sentence. A citation stays with the claim it supports. A formula keeps its grammatical role ("the state vector ⟦9⟧ evolves as ⟦10⟧ where ⟦11⟧ is fixed").
-   - `⟦5⟧Introduction⟦/5⟧` wraps a command whose argument is prose: section headings, `\emph`, `\textbf`, footnotes. Reword the text between the markers and keep both markers. A heading stays on one line.
+   `ingest.py` automatically detects master `.tex` documents in project folders (checking `\documentclass` and standard root names).
+   - `source.txt` contains the extracted prose with placeholders (`⟦n⟧` for atoms, `⟦n⟧...⟦/n⟧` for paired prose commands).
+   - In this view, LaTeX escapes are plain characters: `%`, `&`, `#`, `_`, `$`, curly quotes ``` `` ''```, and en/em dashes `--`/`---`. Never type a raw backslash, `~`, or `^` in the prose.
 
-   The preamble, title, authors, keywords and bibliography are kept whole. List items keep their `\item` placeholders, so lists stay lists: rewrite the text of each item, not the list's structure. Section numbers come from LaTeX, so a heading has no number to keep.
+2. **Rewrite, reread, check, and revise** (Procedure steps 3–6) on `source.txt`.
+   - The checker ignores numbers inside placeholders and fails if any placeholder is dropped, repeated, or altered.
 
-   In the view, LaTeX escapes are plain characters: write `%`, `&`, `#`, `_` and `$` as they are, curly quotes for ``` `` ''```, and an en dash for `--`. Never type a backslash, `~` or `^`: there is no LaTeX in the prose. If a sentence seems to need new LaTeX, keep the original wording.
-
-   If the summary says some `\input{}` files weren't followed, extract and rewrite each of those files the same way.
-2. **Rewrite, reread, check and revise** (procedure steps 3–6) on `source.txt` as usual. The checker ignores numbers inside placeholders, which the placeholders protect, and fails the draft if any placeholder is missing, repeated or invented.
-3. **Rebuild the `.tex` file.**
+3. **Rebuild the `.tex` and compile PDF.**
    ```bash
    python3 SKILL_DIR/scripts/latex_prose.py restore draft.txt --map paper.map.json -o paper_humanized.tex --compile
    ```
-   It refuses to write anything if a placeholder is missing, repeated, out of order, or if the prose contains LaTeX. Fix `draft.txt` and run it again. It then re-reads the new file to confirm every protected piece of LaTeX survived unchanged. With `--compile`, it also builds the PDF next to the `.tex` file when `pdflatex` is installed (run it from the folder that holds the class file and figures). Prose you didn't change comes back byte for byte.
-4. **Deliver the complete `.tex` file in one ```` ```latex ```` code block,** exactly as `restore` wrote it, never retyped or edited by hand. Add the checker report, the result of `restore` (and of `--compile`, if it ran), and the other items of step 7.
+   - Restores every protected piece of LaTeX byte-for-byte.
+   - With `--compile`, it invokes `pdflatex` (automatically resolving MacTeX/TeX Live paths) and builds the PDF twice to resolve citations, cross-references, and figures, outputting the compiled PDF alongside `paper_humanized.tex`.
 
-**Phase 4 with LaTeX.** The user scans the compiled PDF. Use the prose view of the scanned version as `draft.txt` (`source.txt` after the first pass, the previous round's `draft_next.txt` later). The flagged lines can be copied from the PDF as they are: matching treats each placeholder as a few unknown words, so "[3]" or a rendered formula still matches. Each rewrite keeps every placeholder of its run's ORIGINAL; `apply_runs.py` blocks the result otherwise. Then rebuild with `restore`, using the same map.
+4. **Deliver:**
+   - Confirmation of successful LaTeX restoration and compilation (`Compiled with pdflatex: ...`).
+   - The complete checker fidelity report from `check_draft.py`.
+   - The final humanized `.tex` output.
+
+**Phase 4 with LaTeX**: When ZeroGPT or another detector highlights sentences on the rendered PDF, extract the corresponding lines, use `flagged_runs.py` and `apply_runs.py` on the prose view (`draft.txt`), and rebuild via `latex_prose.py restore ... --compile`. Placeholder integrity guarantees the PDF recompiles cleanly without manual TeX surgery.
 
 ## Procedure
 

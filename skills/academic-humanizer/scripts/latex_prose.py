@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: LaTeX Prose Extractor (v7.15.0)
+Academic Humanizer: LaTeX Prose Extractor (v7.16.0)
 
 A rewrite of a LaTeX paper must change its prose and nothing else. This script
 turns a .tex file into a plain-text prose view, with every piece of LaTeX the
@@ -490,7 +490,19 @@ def verify(original_map, tex):
 
 def compile_tex(path):
     """(ok, message). Builds the PDF twice so references resolve; the PDF lands next to the .tex file."""
-    engine = shutil.which('pdflatex') or shutil.which('xelatex') or shutil.which('lualatex')
+    engine = None
+    for name in ('pdflatex', 'xelatex', 'lualatex'):
+        p = shutil.which(name)
+        if p:
+            engine = p
+            break
+        for texdir in ('/Library/TeX/texbin', '/usr/local/bin', '/usr/texbin'):
+            cand = os.path.join(texdir, name)
+            if os.path.isfile(cand) and os.access(cand, os.X_OK):
+                engine = cand
+                break
+        if engine:
+            break
     if not engine:
         return None, 'No LaTeX engine found (pdflatex, xelatex or lualatex). Compile the file yourself.'
     folder, name = os.path.split(os.path.abspath(path))
