@@ -96,6 +96,13 @@ class TestFidelityGate(unittest.TestCase):
         self.assertEqual(out, text)
         self.assertEqual(counts, {})
 
+    def test_lexical_register_runs_without_spacy(self):
+        # lexical_register is pure regex, so it must apply even when nlp is None.
+        flags = {t: (t == 'lexical_register') for t in H.TRANSFORMS}
+        out, counts = H.apply_transforms('We utilize numerous tools.', flags, None)
+        self.assertEqual(out, 'We use many tools.')
+        self.assertEqual(counts.get('lexical_register'), 2)
+
 
 @unittest.skipUnless(HAVE_SPACY, 'spaCy + en_core_web_sm not installed')
 class TestSpacyTransforms(unittest.TestCase):

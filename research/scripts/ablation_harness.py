@@ -10,9 +10,11 @@ number/fact gate (check_draft.py), and writes a manifest + Markdown report. It
 does NOT score detectors — you feed the variants to your detector pipeline and
 fill in the scores.
 
-Five independently toggleable transforms (all deterministic, no LLM):
+Six independently toggleable transforms (all deterministic, no LLM):
   clause_split        dependency-based coordinate + participial clause splitting
                       (delegates to ast_clause_splitter.py; internally fidelity-gated).
+  lexical_register    lowers inflated LLM vocabulary to plain words via a curated,
+                      number/acronym-safe dictionary (register_lexicon.py). No spaCy.
   demonstrative_chain replaces a referring common-noun subject with "This"/"These"
                       on non-paragraph-initial sentences (number-agreed).
   paren_isolation     splits multi-stat parentheticals into back-to-back parens,
@@ -58,11 +60,15 @@ if _SKILL not in sys.path:
     sys.path.insert(0, _SKILL)
 
 import ast_clause_splitter as ACS           # noqa: E402
+import register_lexicon as RL               # noqa: E402
 from check_draft import check, segment, format_report  # noqa: E402
 
-TRANSFORMS = ['clause_split', 'demonstrative_chain', 'paren_isolation', 'lexical_repeat', 'voice_alternation']
+TRANSFORMS = ['clause_split', 'lexical_register', 'demonstrative_chain', 'paren_isolation',
+              'lexical_repeat', 'voice_alternation']
 # Split first (so later transforms see shorter sentences); parentheticals last.
-APPLY_ORDER = ['clause_split', 'voice_alternation', 'demonstrative_chain', 'lexical_repeat', 'paren_isolation']
+APPLY_ORDER = ['clause_split', 'lexical_register', 'voice_alternation', 'demonstrative_chain',
+               'lexical_repeat', 'paren_isolation']
+# lexical_register and paren_isolation are pure regex and need no parser.
 NEEDS_SPACY = {'clause_split', 'demonstrative_chain', 'lexical_repeat', 'voice_alternation'}
 
 SUBJECT_DEPS = ACS.SUBJECT_DEPS
@@ -91,6 +97,12 @@ def _for_each_paragraph(text, fn):
 def t_clause_split(text, nlp):
     new, events = ACS.split_text(text, nlp, max_words=16, participial=True)
     return new, sum(1 for k, _, _ in events if k.startswith('split'))
+
+
+# ---------- transform: lexical_register (regex, no spaCy) ----------
+
+def t_lexical_register(text, nlp=None):
+    return RL.lower_register(text)
 
 
 # ---------- transform: paren_isolation (regex, no spaCy) ----------
@@ -272,6 +284,7 @@ def _to_passive(sent):
 
 TRANSFORM_FUNCS = {
     'clause_split': t_clause_split,
+    'lexical_register': t_lexical_register,
     'demonstrative_chain': t_demonstrative_chain,
     'paren_isolation': t_paren_isolation,
     'lexical_repeat': t_lexical_repeat,

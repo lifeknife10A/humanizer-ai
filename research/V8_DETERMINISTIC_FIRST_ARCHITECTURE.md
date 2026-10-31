@@ -250,6 +250,22 @@ Deliberate constraints on the integration:
   was still produced by an LLM; splitting its sentences removes long-compound
   structure but not the token-distribution fingerprint of the words.
 
+**Ablation Study 1 (2026-10-31) confirmed this empirically** — see
+[`EMPIRICAL_ABLATION_STUDY_1.md`](EMPIRICAL_ABLATION_STUDY_1.md). On the ASOLO
+paper, `clause_split` left Turnitin unchanged (75% → 77%); the lever in the
+passing commercial draft was **lexical register lowering**. Two consequences for
+the harness:
+
+- A sixth transform, **`lexical_register`** (`research/scripts/register_lexicon.py`),
+  was added: a conservative, number/acronym-safe, inflated→plain dictionary (no
+  spaCy). On the ASOLO baseline it made 26 swaps at 100% retention with number
+  fidelity PASS — the cleanest deterministic candidate and the next thing to score.
+- The harness also exposed that **`demonstrative_chain` and `voice_alternation`
+  FAIL number fidelity** on the real paper (they drop numbers that sit inside a
+  replaced subject, e.g. "The 4 participants" → "These"). They are therefore not
+  deployable as-is, independent of any detector effect — exactly the kind of
+  H1 violation the gate exists to catch.
+
 ### 8.2 Stage 2 — deferred; here is the minimal shape if it is ever built
 
 Do not build Stage 2 until (a) the ablation shows Stage 1 (plus the other
