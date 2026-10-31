@@ -1,0 +1,209 @@
+# Phase 4 runs file.
+# Write each run's rewrite on the lines under its REWRITE: line.
+# Leave a REWRITE empty to keep that run as it is.
+# Do not edit ORIGINAL blocks: apply_runs.py uses them to find each run in the draft.
+# CONTEXT lines are for reading only; those sentences are not changed.
+
+=== RUN 1 ===
+ORIGINAL:
+Replacing fossil fuels with clean energy forms the foundation of modern climate strategies.
+CONTEXT AFTER: Photovoltaic arrays offer clean power.
+REWRITE:
+Replacing fossil fuels with renewable generation underpins modern climate mitigation plans.
+
+=== RUN 2 ===
+CONTEXT BEFORE: Wind turbines do as well.
+ORIGINAL:
+Grid operators encounter severe operational challenges when integrating variable renewable generators into legacy systems. Environmental stochasticity combines with intermittency and non-linear generation profiles to cause these difficulties. Conventional power networks rely on centralized dispatching along with constant synchronous inertia to maintain supply-demand equilibrium.
+CONTEXT AFTER: Variable renewable energy sources threaten grid frequency stability.
+REWRITE:
+Integrating fluctuating renewable generators creates severe operational hurdles for system operators. Weather volatility, output intermittency, and non-linear power profiles drive these challenges. Legacy electricity networks depend on centralized generation scheduling and steady rotational inertia to balance supply with consumer demand.
+
+=== RUN 3 ===
+CONTEXT BEFORE: They also risk voltage regulation and transmission line capacity.
+ORIGINAL:
+Machine learning models deliver data-driven solutions to address systemic grid vulnerabilities. High-frequency telemetry streams arrive continuously from Internet of Things sensors. Smart meters and meteorological satellites transmit data concurrently. Evaluating incoming streams allows algorithms to enable high-precision power generation forecasting while automating demand-side load management. Predictive systems carry out dynamic fault detection and intelligent battery storage control. We assess computational architectures, mathematical foundations, practical implementations, and performance metrics across smart grid setups.
+REWRITE:
+Machine learning models deliver data-driven solutions. They address systemic grid vulnerabilities directly. Telemetry streams arrive continuously from Internet of Things sensors. Smart meters transmit data concurrently alongside meteorological satellites. Evaluating incoming streams allows algorithms to enable high-precision power generation forecasting. These algorithms automate demand-side load management. Predictive systems carry out dynamic fault detection. They also manage battery storage assets. We review computational architectures and mathematical foundations across smart grid setups. Practical implementations and performance metrics are evaluated systematically.
+
+=== RUN 4 ===
+ORIGINAL:
+1. Operational stability and systemic grid vulnerabilities
+REWRITE:
+1. Systemic grid vulnerabilities and operational stability
+
+=== RUN 5 ===
+CONTEXT BEFORE: Grid operations require balance.
+ORIGINAL:
+Maintaining operational stability requires continuous matching of power generation with consumer demand. Centralized thermal and hydroelectric plants adjust output dynamically to track load variations in traditional power architectures. Renewable energy sources disrupt this paradigm. Power production depends on unpredictable environmental parameters. Solar irradiance and ambient temperature vary constantly. Cloud cover and wind speed fluctuate as well. The resulting volatility introduces significant challenges across multiple operational domains.
+REWRITE:
+Maintaining operational stability requires continuous matching of power generation with consumer demand. Traditional electrical grids adjust generation from thermal and hydroelectric facilities dynamically to track load variations. Renewable energy sources disrupt this operational framework. Power production depends on unpredictable environmental parameters. Solar irradiance and ambient temperature vary constantly. Cloud cover and wind speed fluctuate continuously. The resulting volatility introduces significant challenges across multiple operational domains.
+
+=== RUN 6 ===
+CONTEXT BEFORE: Frequency stability suffers first.
+ORIGINAL:
+Inverter-based renewable power plants lack the physical rotational inertia of heavy steam turbines. This deficiency reduces total system inertia.
+CONTEXT AFTER: System frequency sensitivity spikes during power shocks.
+REWRITE:
+Inverter-based renewable power plants lack physical rotational inertia from heavy steam turbines. System inertia drops as a consequence.
+
+=== RUN 7 ===
+CONTEXT BEFORE: It overloads distribution transformers.
+ORIGINAL:
+Meanwhile, legacy forecasting proves inefficient. Traditional statistical forecasting techniques fail to model non-linear atmospheric dynamics. Prediction errors rise, causing excessive spinning reserve costs.
+REWRITE:
+Legacy forecasting proves inefficient under volatile weather conditions. Traditional statistical approaches fail to model non-linear atmospheric dynamics. Prediction errors rise. Spinning reserve expenses increase accordingly.
+
+=== RUN 8 ===
+ORIGINAL:
+2. Forecasting renewable output with machine learning
+REWRITE:
+2. Forecasting renewable generation with machine learning
+
+=== RUN 9 ===
+ORIGINAL:
+Accurate power generation forecasting is essential. Scheduling generator output across ultra-short-term, short-term, and medium-term horizons optimizes economic dispatch. Modern machine learning architectures process complex temporal and spatial datasets to minimize prediction errors.
+REWRITE:
+Accurate power generation forecasting remains essential. Scheduling generator output across ultra-short, short, and medium time horizons optimizes economic dispatch. Modern machine learning architectures process complex temporal and spatial datasets to minimize prediction errors.
+
+=== RUN 10 ===
+ORIGINAL:
+Artificial neural networks offer flexible forecasting options. Multi-layer perceptrons map non-linear relationships between meteorological variables and kilowatt output. Hidden layers extract features. They isolate complex combinations of humidity, solar angle, and air density. Gradient descent algorithms handle backpropagation optimization. They update weight matrices to minimize mean squared error over training datasets.
+REWRITE:
+Artificial neural networks supply flexible forecasting options. Multi-layer perceptrons map non-linear relationships between meteorological variables and kilowatt output. Hidden network layers perform feature extraction. They isolate variables including humidity, solar angle, and air density. Backpropagation optimization relies on gradient descent algorithms. Weight matrices update to minimize mean squared error across training datasets.
+
+=== RUN 11 ===
+ORIGINAL:
+Recurrent and spatiotemporal neural architectures handle complex sequential data. Time-series modeling captures sequential dependencies across meteorological data streams. Long short-term memory networks use gated memory cells. These cells preserve long-term temporal dependencies. They also mitigate vanishing gradient problems during training. Convolutional recurrent models integrate visual data.
+CONTEXT AFTER: Convolutional layers process satellite cloud imagery.
+REWRITE:
+Recurrent and spatiotemporal neural architectures handle complex sequential data. Time-series modeling captures sequential dependencies across meteorological telemetry streams. Long short-term memory networks rely on gated memory cells. These cells preserve long-term temporal dependencies while mitigating vanishing gradient problems during training. Convolutional recurrent models integrate visual inputs.
+
+=== RUN 12 ===
+ORIGINAL:
+Ensemble learning algorithms offer further predictive stability. Combining multiple weak learners yields superior generalization on noisy weather datasets. Random forest regressors use decision tree ensembles. They average predictions across hundreds of bootstrapped sub-samples to reduce model variance. Gradient boosted decision trees apply iterative boosting algorithms.
+CONTEXT AFTER: These algorithms minimize residual errors continuously from previous tree iterations.
+REWRITE:
+Ensemble learning models enhance predictive stability. Combining multiple weak learners yields superior generalization across noisy weather datasets. Random forest regressors employ decision tree ensembles. Outputs average across hundreds of bootstrapped sub-samples to limit model variance. Gradient boosted decision trees execute iterative boosting algorithms.
+
+=== RUN 13 ===
+ORIGINAL:
+Physical constraints govern the mathematical conversion of atmospheric kinetic and radiative energy into electrical power. Machine learning algorithms integrate these governing equations into predictive models.
+REWRITE:
+Physical constraints govern the mathematical conversion of atmospheric kinetic and radiative energy into electrical power. Machine learning algorithms integrate these physical equations directly into predictive models.
+
+=== RUN 14 ===
+CONTEXT BEFORE: Wind turbine dynamics follow fluid mechanical limits.
+ORIGINAL:
+Electrical power output depends non-linearly on wind velocity and air density. Fluid dynamics establish the theoretical power formula: Available Kinetic Power = 0.5 * Air Density * Rotor Area * (Wind Velocity)^3 Available kinetic power in a moving air stream scales with air density, rotor area, and the cube of wind velocity. Realized electrical output incorporates aerodynamic losses: Electrical Power Output = Available Kinetic Power * Power Coefficient = 0.5 * Air Density * Rotor Area * Power Coefficient * (Wind Velocity)^3 Electrical power output incorporates the power coefficient, which models aerodynamic efficiency.
+REWRITE:
+Electrical power output exhibits non-linear dependence on wind velocity and air density. Aerodynamic principles define theoretical power:
+Available Kinetic Power = 0.5 * Air Density * Rotor Area * (Wind Velocity)^3
+Kinetic power in an airflow varies proportionally with air density, rotor area, and cubed wind velocity. Actual electrical output accounts for aerodynamic conversion efficiency through the power coefficient:
+Electrical Power Output = Available Kinetic Power * Power Coefficient = 0.5 * Air Density * Rotor Area * Power Coefficient * (Wind Velocity)^3
+The power coefficient quantifies turbine aerodynamic efficiency during electrical energy conversion.
+
+=== RUN 15 ===
+ORIGINAL:
+Photovoltaic module thermal derating accounts for thermal losses. Conversion efficiency declines linearly as cell operating temperature rises above standard test conditions. Governing relationships determine the cell temperature formula: Cell Temperature = Ambient Temperature + (Solar Irradiance / Standard Reference Irradiance) * (Nominal Operating Cell Temperature - 20) Cell temperature depends on ambient temperature, solar irradiance, standard reference irradiance, and nominal operating cell temperature. The temperature derated efficiency equation adjusts array performance: Array Efficiency = Standard Reference Efficiency * (1 - Temperature Coefficient * (Cell Temperature - Reference Temperature)) Photovoltaic Power Output = Solar Irradiance * Total Module Area * Array Efficiency Photovoltaic power output scales with solar irradiance, total module area, and array efficiency.
+CONTEXT AFTER: Array efficiency incorporates reference efficiency, the temperature coefficient, cell temperature, and reference temperature.
+REWRITE:
+Photovoltaic module thermal derating models efficiency losses due to heat. Conversion efficiency declines linearly whenever cell operating temperature exceeds standard test conditions. Physical relationships define operating cell temperature:
+Cell Temperature = Ambient Temperature + (Solar Irradiance / Standard Reference Irradiance) * (Nominal Operating Cell Temperature - 20)
+Operating cell temperature depends on ambient temperature, incident solar radiation, reference irradiance, and nominal cell operating metrics. Array efficiency adjustments follow:
+Array Efficiency = Standard Reference Efficiency * (1 - Temperature Coefficient * (Cell Temperature - Reference Temperature))
+Photovoltaic Power Output = Solar Irradiance * Total Module Area * Array Efficiency
+Photovoltaic output varies as a function of solar irradiance, total module area, and derated array efficiency.
+
+=== RUN 16 ===
+ORIGINAL:
+Smart grids leverage machine learning to optimize demand. These algorithms profile, predict, and shape consumer energy demand. They transform passive end-users into active grid participants.
+REWRITE:
+Smart grids deploy machine learning to analyze, forecast, and shape consumer electricity demand. These algorithms convert passive energy consumers into active grid participants.
+
+=== RUN 17 ===
+ORIGINAL:
+Unsupervised consumer load profiling groups consumption habits cleanly. Clustering algorithms analyze smart meter data to segment consumers based on usage habits. K-means clustering uses distance-based partitioning. It groups daily electricity consumption profiles into distinct load shapes.
+CONTEXT AFTER: Density-based hierarchical algorithms identify irregular consumption behaviors.
+REWRITE:
+Unsupervised consumer load profiling categorizes energy usage behaviors. Clustering algorithms process smart meter datasets to segment consumers by consumption habit. K-means clustering applies distance-based partitioning. Daily consumption profiles group into distinct load shapes.
+
+=== RUN 18 ===
+ORIGINAL:
+5. Predictive maintenance and asset monitoring
+REWRITE:
+5. Predictive asset maintenance and fault monitoring
+
+=== RUN 19 ===
+ORIGINAL:
+Equipment failures disrupt service. Unplanned equipment failure in transmission lines, transformers, and wind turbine gearboxes causes major power disruptions. Machine learning enables proactive maintenance regimes.
+REWRITE:
+Equipment breakdowns disrupt power delivery. Unplanned failures across transmission lines, transformers, or wind turbine gearboxes trigger severe outages. Machine learning methods support proactive maintenance frameworks.
+
+=== RUN 20 ===
+CONTEXT BEFORE: They signal partial discharge events alongside insulation degradation.
+ORIGINAL:
+Support vector classifiers categorize early-stage faults. They sort events into line-to-ground, line-to-line, or transformer overheating categories.
+REWRITE:
+Support vector classifiers organize early electrical faults. They sort events into line-to-ground, line-to-line, or transformer overheating categories.
+
+=== RUN 21 ===
+CONTEXT BEFORE: This spectral feature extraction detects bearing wear.
+ORIGINAL:
+Computer vision inspection uses convolutional neural networks to evaluate drone thermal images. Visual inspection locates micro-cracks alongside dust accumulation and defective solar cells.
+REWRITE:
+Computer vision inspection evaluates drone thermal imagery using convolutional neural networks. Visual processing detects structural micro-cracks, surface dust buildup, and damaged solar cells.
+
+=== RUN 22 ===
+ORIGINAL:
+Pairing convolutional with recurrent neural networks lowered Mean Absolute Percentage Error from 18.5 percent down to 4.2 percent. Wind power metrics showed comparable improvements. Gradient boosted decision trees cut Root Mean Square Error by 34 percent relative to traditional Numerical Weather Prediction models.
+REWRITE:
+Combining convolutional and recurrent neural networks reduced solar forecasting Mean Absolute Percentage Error from 18.5 percent down to 4.2 percent. For wind generation, gradient boosted decision trees achieved a 34 percent reduction in Root Mean Square Error compared to numerical weather prediction baselines.
+
+=== RUN 23 ===
+ORIGINAL:
+Operational reliability and cost savings confirm financial benefits.
+CONTEXT AFTER: Automated machine learning control strategies enhance overall grid performance.
+REWRITE:
+Empirical pilot projects confirm operational reliability and economic gains.
+
+=== RUN 24 ===
+ORIGINAL:
+Predictive battery scheduling lowered peak demand generation costs by 22 percent during summer peak periods.
+REWRITE:
+Optimized battery scheduling reduced peak demand generation costs by 22 percent during summer peak operating windows.
+
+=== RUN 25 ===
+ORIGINAL:
+7. Security vulnerabilities and regulatory compliance
+REWRITE:
+7. Security risks, regulatory compliance, and future trends
+
+=== RUN 26 ===
+CONTEXT BEFORE: Deployment presents notable challenges.
+ORIGINAL:
+Critical power grid infrastructure demands robust machine learning designs.
+REWRITE:
+Deploying machine learning models within critical grid infrastructure presents distinct challenges.
+
+=== RUN 27 ===
+ORIGINAL:
+Cyber-security vulnerabilities expand as sensor deployments grow.
+CONTEXT AFTER: Distributed sensor networks create expanding attack vectors for malicious actors.
+REWRITE:
+Expanding sensor networks increases cyber-security exposure across distributed grid nodes.
+
+=== RUN 28 ===
+CONTEXT BEFORE: Explainability remains essential.
+ORIGINAL:
+Regulatory compliance requires it. Black-box machine learning models lack physical interpretability required by grid operators.
+CONTEXT AFTER: Physics-informed neural networks solve this issue.
+REWRITE:
+Regulatory standards demand transparent decision-making. Black-box machine learning models lack physical interpretability required by system dispatchers.
+
+=== RUN 29 ===
+ORIGINAL:
+Artificial intelligence and machine learning are essential technologies for enabling the large-scale integration of renewable energy into modern power grids. Accurate generation forecasting, dynamic load management, intelligent storage control, and automated fault detection resolve fundamental stability issues caused by renewable energy intermittency.
+CONTEXT AFTER: Future research should focus on decentralized edge intelligence.
+REWRITE:
+Artificial intelligence and machine learning serve as essential tools for integrating large shares of renewable energy into modern power grids. Accurate generation forecasting, active load management, automated battery control, and dynamic fault detection resolve core stability challenges stemming from renewable intermittency.
