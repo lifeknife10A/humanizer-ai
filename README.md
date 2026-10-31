@@ -208,6 +208,7 @@ python3 -m unittest discover -s tests
 - **[research/ZEROGPT_LABEL_STUDY.md](research/ZEROGPT_LABEL_STUDY.md)**: Which sentence properties predict ZeroGPT highlights, from 292 labelled sentences.
 - **[research/TURNITIN_NOTES.md](research/TURNITIN_NOTES.md)**: Turnitin digest: similarity vs AI detection, accuracy claims with source labels, and what they imply for Phase 4.
 - **[research/AI_DETECTION_MECHANICS.md](research/AI_DETECTION_MECHANICS.md)**: How AI text detectors work at the lowest level: the score-and-threshold mechanism, the five detection families, and why no threshold can be reliable.
+- **[research/WIKIPEDIA_SIGNS.md](research/WIKIPEDIA_SIGNS.md)**: Digest of Wikipedia's "Signs of AI writing" field guide: the human-reviewer tells, era drift in AI vocabulary, signs of *human* writing, and which signs were adopted into the checker (v7.13.1).
 
 ---
 

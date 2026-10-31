@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Phase 2 Draft Checker (v7.13.0)
+Academic Humanizer: Phase 2 Draft Checker (v7.13.1)
 
 Compares a rewritten draft against its source text and an optional
 author-supplied fact sheet. It reports problems; it never rewrites text.
@@ -86,6 +86,15 @@ STOCK_PHRASES = [
     'holistic', r'to (?:address|resolve|overcome|mitigate) these',
     r'this study (?:highlights|outlines)', 'reveals exactly', 'must deploy',
     'must integrate', 'must establish', 'hinges on', r'as the demand for',
+    # Field-guide candidates from Wikipedia's "Signs of AI writing"
+    # (research/WIKIPEDIA_SIGNS.md): distinctive enough that legitimate
+    # academic prose rarely uses them. Warn-only, not yet benchmark-validated.
+    'interplay', 'intricacies', 'meticulously', r'garner\w*', r'bolster\w*',
+    r'showcas\w*', r'foster\w*', r'underscore[sd]?', 'renowned', 'nestled',
+    'groundbreaking', 'deep dive', 'vibrant', 'enduring', 'exemplifies',
+    'valuable insights', r'boasts?',
+    # Negative parallelism: "not only X, but also Y" (WP:AIPARALLEL).
+    r'not only\b[^.;]{1,120}?\bbut also\b',
 ]
 STOCK_PATTERN = re.compile(r'\b(' + '|'.join(STOCK_PHRASES) + r')\b', re.IGNORECASE)
 
@@ -560,7 +569,7 @@ def _read(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.13.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Phase 2 Draft Checker (v7.13.1)')
     parser.add_argument('source', help='Original text file')
     parser.add_argument('draft', nargs='?', help='Rewritten draft (omit to print the fact ledger)')
     parser.add_argument('--facts', help='Author-supplied fact sheet')

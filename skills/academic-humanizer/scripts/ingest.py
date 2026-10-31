@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: Intake (v7.13.0)
+Academic Humanizer: Intake (v7.13.1)
 
 Turns a source file into the plain text the pipeline works on, so the skill
 never has to stop and ask what format it was handed.
@@ -115,7 +115,7 @@ def ingest(path, which=shutil.which, run=subprocess.run):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: Intake (v7.13.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: Intake (v7.13.1)')
     parser.add_argument('source', help=f'Source file ({SUPPORTED})')
     parser.add_argument('-o', '--output', default='source.txt',
                         help='Plain text to write (default: source.txt)')

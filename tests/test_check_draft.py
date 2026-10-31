@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the Phase 2 Draft Checker (v7.13.0)
+Unit Test Suite for the Phase 2 Draft Checker (v7.13.1)
 Validates fact extraction, fact-sheet enforcement, and style warnings.
 """
 
@@ -280,3 +280,21 @@ class TestBenchmarks(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestFieldGuidePhrases(unittest.TestCase):
+
+    def test_wikipedia_signs_warn(self):
+        draft = ("The interplay of factors showcases a vibrant research landscape here. "
+                 "This groundbreaking study not only bolstered the field but also fostered debate.")
+        found = kinds(check(draft, draft))
+        self.assertIn('stock-phrase', found)
+        hits = [f['message'] for f in check(draft, draft)['findings'] if f['kind'] == 'stock-phrase']
+        for expected in ('interplay', 'showcases', 'vibrant', 'groundbreaking', 'bolstered', 'not only'):
+            self.assertTrue(any(expected in m for m in hits), expected)
+
+    def test_common_academic_words_do_not_warn(self):
+        draft = ("The robust framework enhances accuracy and remains crucial for alignment. "
+                 "Our results align with prior work and highlight the effect clearly.")
+        hits = [f['message'] for f in check(draft, draft)['findings'] if f['kind'] == 'stock-phrase']
+        self.assertEqual(hits, [])
