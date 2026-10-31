@@ -42,19 +42,21 @@
    - Sentences detected as AI + Paraphrased are highlighted in **purple** in the report.
 
 #### Key Empirical Numbers & Benchmark Metrics:
-- **Pre-2019 Human Baseline (719,877 student papers)**:
+*(Note: These figures are **[vendor claim]** from Turnitin's self-published technical white paper; see [`research/TURNITIN_NOTES.md`](TURNITIN_NOTES.md) and [`research/LITERATURE_REVIEW.md`](LITERATURE_REVIEW.md) for critical evaluation and independent counter-evidence).*
+- **Pre-2019 Human Baseline (719,877 student papers)** [vendor claim]:
   - Document-level FPR: **0.51%** (AIW-2) vs 0.70% (AIW-1).
   - Sentence-level FPR: **0.33%** (AIW-2) vs 0.42% (AIW-1).
-- **Detection Recall on AI & Paraphrased Text (1,768 documents)**:
+- **Detection Recall on AI & Paraphrased Text (1,768 documents)** [vendor claim]:
   - AIW-1 Document Recall: 51.7% $\to$ AIW-2 Document Recall: **78.34%** (+26.6% jump).
   - AIW-1 Sentence Recall: 45.56% $\to$ AIW-2 Sentence Recall: **85.22%**.
   - AIR-1 Paraphrase Detection: Correctly identifies AI-generated + Paraphrased sentences **81.68%** of the time; misses only 9.31% as purely human.
-- **Cross-LLM Recall (AIW-2)**:
+- **Cross-LLM Recall (AIW-2)** [vendor claim]:
   - GPT-4: **76.8%** (up from 39.7% in AIW-1).
   - Llama-2: **99.2%**.
   - Gemini-Pro 1.0: **87.25%**.
-- **Non-Native English (ELL / L2) Fairness**:
-  - Tested on ~9,000 human essays (ASAP, ICNALE, PELIC): L2 FPR is **0.86%** vs L1 FPR of **0.87%** (no statistically significant bias on AIW-2).
+- **Non-Native English (ELL / L2) Fairness** [vendor claim]:
+  - Tested on ~9,000 human essays (ASAP, ICNALE, PELIC): Turnitin claims L2 FPR is **0.86%** vs L1 FPR of **0.87%** (no statistically significant bias).
+  - **Critical Independent Counter-Evidence**: This vendor claim directly contradicts independent empirical literature in this repo (Liang et al. 2023, Stanford), which measured a **61.3% false positive rate** on non-native English TOEFL essays across commercial detectors. Treat Turnitin's internal fairness numbers with appropriate skepticism.
 
 #### Critical Implications for Humanizer-AI:
 - **Why Paraphrasing Tools Fail (and get highlighted purple)**: Standard rewriting tools (QuillBot, sentence rephrasers) use seq2seq encoder-decoder architectures that leave distinct residual statistical signatures that AIR-1 specifically detects. Naive paraphrasing is dead against Turnitin.
@@ -232,7 +234,7 @@ Which specific phonological, morphological, syntactic, and lexical components au
 #### Direct Implications for Humanizer-AI:
 - **Breaking Nominal Loading**: AI's $+21.17$ noun weight and $-99.28$ pronoun deficit explain why AI prose feels stiff and robotic. Humanizing requires unpacking abstract noun stacks (e.g. *"the implementation of the utilization of..."*) into natural human verbal clauses with appropriate pronouns and auxiliary verbs (*"we observed," "it had been"*).
 - **The Adjective Ban Validated**: The $+24.01$ adjectival modifier weight confirms our pipeline's strict prohibition on decorative adjectives (*"pivotal," "vital," "revolutionary"*).
-- **Restoring Academic Passive Voice**: Contrary to popular prompt engineering advice ("always use active voice"), real human academic writing employs **33.6% passive voice** vs. AI's 11.1%. Reintroducing natural academic passivization ("samples were heated to 300 °C") shifts the text directly back into the authentic human register.
+- **Passive Voice: Clarifying Refinement, Not a Blanket Mandate**: While Georgiou [P05] observed that human academic essays employ 33.6% passive voice vs. 11.1% in AI, empirical calibration on this repo's ZeroGPT benchmark corpus ([`research/POS_CERTAINTY_READABILITY.md`](POS_CERTAINTY_READABILITY.md)) revealed the opposite dynamic on ZeroGPT: the lowest-scoring humanized passes (2.9% and 5.3%) had the least passive voice (0–8%), while the 100%-AI baseline had 21.1%. Therefore, Rule $S10$ stays as a conservative clarifying refinement (do not over-convert natural passive in methods and physical measurements, but keep active authors' voice for claims and stance) rather than mandating passive voice.
 
 ---
 
@@ -246,7 +248,7 @@ Which specific phonological, morphological, syntactic, and lexical components au
    - **Pipeline Rule**: Surgical edits *must* group contiguous flags into buffered runs (Phase 4 `flagged_runs.py`).
 
 2. **The Death of Surface Spinners & Paraphrasing**:
-   - Turnitin AIR-1 [P01] specifically detects paraphrasing and spinning with 81.7% accuracy.
+   - Turnitin AIR-1 [P01] specifically detects paraphrasing and spinning with 81.7% accuracy [vendor claim].
    - Russell & Iyyer [P02] prove that span-level artifact editors (LAMP) drop narrative AI detection by only 1.6 points (95.5% $\to$ 93.9%).
    - Ahlawat et al. [P03] show that commercial humanizers leave distinct probability clustering traces around 53%.
    - **Pipeline Rule**: Swapping synonyms or rewriting with generic prompts does not work. The underlying discourse architecture, causality, and burstiness must be restructured.
@@ -261,7 +263,7 @@ Which specific phonological, morphological, syntactic, and lexical components au
    - Human writing is defined by concrete referential anchors: exact dates, months, times, prices, and measurements.
    - **Pipeline Rule**: Enforce zero-tolerance bans on high-log-odds AI n-grams; re-inject specific empirical data from Author Fact Sheets.
 
-5. **Morphosyntactic Imbalance & Nominal Loading**:
+5. **Morphosyntactic Imbalance & Calibrated Register**:
    - Georgiou [P05] reveals via LASSO regression that AI writing is plagued by heavy nominal loading (+21.17 noun weight), adjectival over-modification (+24.01), and a severe deficit in pronouns (-99.28) and auxiliary verbs (-21.30).
-   - Real human academic writing employs **33.6% passive voice** vs. AI's 11.1%.
-   - **Pipeline Rule**: De-nominalize dense noun stacks; re-inject natural pronouns and authentic academic passive constructions rather than forcing artificial active-voice noun chains.
+   - **Passive Voice Synthesis**: While [P05] found 33.6% passive in human essays, this repo's ZeroGPT benchmark calibration ([`POS_CERTAINTY_READABILITY.md`](POS_CERTAINTY_READABILITY.md)) proved that active authors' voice cleared the most runs (2.9% and 5.3% AI). Rule $S10$ is calibrated to avoid over-converting passive in methods while retaining active voice for claims.
+   - **Pipeline Rule**: De-nominalize dense noun stacks; re-inject natural pronouns; keep methods in authentic passive without mandating high passive quotas.
