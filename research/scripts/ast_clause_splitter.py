@@ -140,7 +140,7 @@ def _coordinate_cuts(sent):
             continue
         subj = min((ch.left_edge.i for ch in conj.children if ch.dep_ in SUBJECT_DEPS),
                    default=conj.i)
-        right_start = sent[subj].idx - base
+        right_start = conj.doc[subj].idx - base   # subj is a doc-level token index
         drop_start = tok.idx - base
         # Pull a comma (and spaces) sitting just before the cc into the dropped region.
         j = drop_start - 1
@@ -192,7 +192,7 @@ def participial_split(sent):
             continue
         left_edge = min(t.i for t in sub)
         # The tail must be set off by a comma immediately before the participial subtree.
-        start_char = sent[left_edge].idx - base
+        start_char = tok.doc[left_edge].idx - base   # left_edge is a doc-level token index
         j = start_char - 1
         while j >= 0 and sent.text[j] in ' \t':
             j -= 1

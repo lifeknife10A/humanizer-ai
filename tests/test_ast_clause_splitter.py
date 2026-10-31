@@ -86,6 +86,15 @@ class TestCoordinateSplit(unittest.TestCase):
         out, _ = self._split(text, max_words=16)
         self.assertEqual(out.strip(), text.strip())
 
+    def test_split_on_non_first_sentence(self):
+        # Regression: a coordinate clause in a later sentence of a paragraph (sent.start_char > 0)
+        # must use doc-level token indices, not span-relative ones.
+        text = ('The study began in the campus usability lab. We tested the platform with twelve users, '
+                'and the satisfaction scores rose from 2.3 to 12.6 over the trial.')
+        out, _ = self._split(text)
+        self.assertIn('We tested the platform with twelve users.', out)
+        self.assertIn('The satisfaction scores rose from 2.3 to 12.6 over the trial.', out)
+
 
 @unittest.skipUnless(HAVE_SPACY, 'spaCy + en_core_web_sm not installed')
 class TestParticipialSplit(unittest.TestCase):
