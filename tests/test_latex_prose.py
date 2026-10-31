@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit Test Suite for the LaTeX Prose Extractor (v7.12.0)
+Unit Test Suite for the LaTeX Prose Extractor (v7.13.0)
 """
 
 import os

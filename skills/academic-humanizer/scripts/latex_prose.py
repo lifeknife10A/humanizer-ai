@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Academic Humanizer: LaTeX Prose Extractor (v7.12.0)
+Academic Humanizer: LaTeX Prose Extractor (v7.13.0)
 
 A rewrite of a LaTeX paper must change its prose and nothing else. This script
 turns a .tex file into a plain-text prose view, with every piece of LaTeX the
@@ -520,7 +520,7 @@ def _write(path, text):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Academic Humanizer: LaTeX Prose Extractor (v7.12.0)')
+    parser = argparse.ArgumentParser(description='Academic Humanizer: LaTeX Prose Extractor (v7.13.0)')
     sub = parser.add_subparsers(dest='command', required=True)
     ex = sub.add_parser('extract', help='Write the prose view of a .tex file and its map')
     ex.add_argument('tex')

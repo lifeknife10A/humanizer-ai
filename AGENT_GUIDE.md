@@ -19,6 +19,7 @@ humanizer-ai/
 │       ├── SKILL.md                  # The skill: procedure, hard constraints, style rules
 │       ├── fact_sheet_template.md    # Author fact sheet: the only source of added specifics
 │       └── scripts/
+│           ├── ingest.py             # Intake: .txt/.md/.docx/.pdf -> plain text, .tex -> prose view
 │           ├── check_draft.py        # Phase 2 checker (fact ledger, fact & style checks)
 │           ├── flagged_runs.py       # Phase 4: group detector highlights into runs, emit runs file
 │           ├── apply_runs.py         # Phase 4: splice rewritten runs back, then check
@@ -34,6 +35,7 @@ humanizer-ai/
 │   └── 07_master_empirical_untruncated_952w.txt
 └── tests/
     ├── test_humanizer.py   # Tests for the v5.0.0 regex engine
+    ├── test_ingest.py      # Tests for intake (docx, pdf, tex, txt)
     ├── test_check_draft.py # Tests for the Phase 2 checker
     ├── test_flagged_runs.py # Tests for the Phase 4 run grouping
     ├── test_apply_runs.py  # Tests for the Phase 4 splicer
@@ -43,6 +45,13 @@ humanizer-ai/
 ---
 
 ## 2. Core CLI Commands
+
+### Ingest a Source File:
+```bash
+# docx, pdf (needs poppler's pdftotext), md, txt -> source.txt; tex -> prose view + map
+python3 skills/academic-humanizer/scripts/ingest.py SOURCE_FILE -o source.txt \
+    [--map paper.map.json] [--legend legend.txt]
+```
 
 ### Run the Phase 2 Checker:
 ```bash

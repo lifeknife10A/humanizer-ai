@@ -22,7 +22,7 @@ Most commercial "AI humanizers" achieve low detection scores by aggressively sum
 
 ---
 
-## System Architecture: Fact-Sheet Pipeline (v7.12.0)
+## System Architecture: Fact-Sheet Pipeline (v7.13.0)
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
@@ -159,6 +159,9 @@ In Claude Code, open this repository and the skill is available automatically: `
 
 ### 3. Run the Checker Directly
 ```bash
+# Ingest a source file into source.txt first (docx, pdf, md, tex)
+python3 skills/academic-humanizer/scripts/ingest.py paper.docx -o source.txt
+
 C=skills/academic-humanizer/scripts/check_draft.py
 
 # Fact ledger: every number, acronym and formula the draft may use
@@ -197,6 +200,7 @@ python3 -m unittest discover -s tests
 - **[SKILL.md](skills/academic-humanizer/SKILL.md)**: The skill: inputs, procedure, hard constraints, style rules and examples for Phases 1–3.
 - **[fact_sheet_template.md](skills/academic-humanizer/fact_sheet_template.md)**: Template for the author's fact sheet, the only allowed source of added specifics.
 - **[check_draft.py](skills/academic-humanizer/scripts/check_draft.py)**: The Phase 2 checker (fact ledger, fact checks, style checks).
+- **[ingest.py](skills/academic-humanizer/scripts/ingest.py)**: Turns a `.txt`/`.md`/`.docx`/`.pdf` source into plain text, and a `.tex` file into the placeholder prose view (via `latex_prose.py`).
 - **[flagged_runs.py](skills/academic-humanizer/scripts/flagged_runs.py)**: The Phase 4 helper that groups detector highlights into runs.
 - **[apply_runs.py](skills/academic-humanizer/scripts/apply_runs.py)**: The Phase 4 splicer that puts rewritten runs back without touching any other sentence.
 - **[latex_prose.py](skills/academic-humanizer/scripts/latex_prose.py)**: Turns a `.tex` file into a prose view with placeholders for all LaTeX, and rebuilds the `.tex` file from the rewritten view.

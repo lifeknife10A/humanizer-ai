@@ -1,8 +1,8 @@
 ---
 name: academic-humanizer
-description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Works on plain text or LaTeX source: for a .tex file it rewrites only the prose and returns the complete .tex, with math, citations and commands untouched. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
+description: "Rewrites AI-drafted academic text (papers, theses, reports) into varied, specific prose without the patterns AI detectors key on: uniform sentence length, stock transitions, three-item lists, participial tails, and preachy conclusions. Keeps every number, term, and list item from the source. Works on plain text, Word, PDF, or LaTeX source: scripts/ingest.py turns .txt, .md, .docx and .pdf files into plain text, and for a .tex file the pipeline rewrites only the prose and returns the complete .tex, with math, citations and commands untouched. Added specifics come only from an author-supplied fact sheet, and a bundled checker blocks any invented or dropped number. Includes a detector-feedback phase that rewrites only the sentences ZeroGPT highlighted, for scores under 10%. Use when asked to humanize, de-AI, or rewrite academic text, or when the user returns with highlighted sentences from an AI detector."
 metadata:
-  version: "7.12.0"
+  version: "7.13.0"
   triggers:
     - "/humanizer"
     - "/academic-humanizer"
@@ -14,7 +14,7 @@ metadata:
     - "humanize paper"
 ---
 
-# Academic Humanizer (v7.12.0)
+# Academic Humanizer (v7.13.0)
 
 Rewrite AI-drafted academic text so it reads like a specific author wrote it, in one run, without changing what it says.
 
@@ -24,12 +24,16 @@ The work happens in four phases. You rewrite the text and reread it against the 
 
 | Input | Required | What it is |
 | :--- | :--- | :--- |
-| Source text | Yes | The text to rewrite, as plain text or a LaTeX `.tex` file. Every number, term, claim, and list item in it must survive. |
+| Source text | Yes | The text to rewrite: pasted text, or a `.txt`, `.md`, `.docx`, `.pdf`, or `.tex` file. Every number, term, claim, and list item in it must survive. |
 | Fact sheet | No | Real details from the author (parameters, instrument settings, results, citations) that may be added. Template: `fact_sheet_template.md` in this skill's directory. |
 
 The fact sheet is the only place added specifics can come from. Without one, you keep length by unpacking sentences and add no new detail.
 
-If no fact sheet was given, don't stop to ask for one. Work from the source alone and list what the author could add at the end (step 7).
+If no fact sheet was given, don't stop to ask for one. Work from the source alone and list what the author could add at the end (step 7). If the source's format is unclear, don't ask: run `ingest.py` on it (step 1) and work with whatever comes out.
+
+## Output discipline
+
+Start with the work, not with preamble. Do not restate the task, summarize the input, announce the rules you are about to follow, or warn the user about what detectors might think of the text. Do not pad the delivery with offers of unrelated help. If part of the job cannot be done (Python unavailable, a missing tool, a file that won't read), say so in one line at the top and complete everything else. The draft and the reports of step 7 are the reply.
 
 ## LaTeX sources
 
@@ -62,7 +66,11 @@ When the source is a `.tex` file, never rewrite the LaTeX directly. `scripts/lat
 
 `SKILL_DIR` below means this skill's directory. Work in a scratch directory.
 
-1. **Save the inputs** as `source.txt` and, if given, `facts.md`. For a `.tex` file, write `source.txt` with `latex_prose.py extract` instead (see "LaTeX sources" above).
+1. **Ingest the inputs.** For a `.txt`, `.md`, `.docx`, or `.pdf` file, run:
+   ```bash
+   python3 SKILL_DIR/scripts/ingest.py SOURCE_FILE -o source.txt
+   ```
+   A `.pdf` needs poppler's `pdftotext`; if it is missing or the PDF is a scan, ingest says so in one line — then work from text the user pastes, without stalling. For pasted text, save it as `source.txt` directly. For a `.tex` file, run `ingest.py` with `--map paper.map.json --legend legend.txt`; it writes the prose view via `latex_prose.py extract` (see "LaTeX sources" above). Save the fact sheet, if given, as `facts.md`. Never ask which format the input is; ingest what you were handed.
 2. **Read the fact ledger.**
    ```bash
    python3 SKILL_DIR/scripts/check_draft.py source.txt --facts facts.md
